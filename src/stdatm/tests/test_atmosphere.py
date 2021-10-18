@@ -140,38 +140,47 @@ def test_speed_conversions():
         [0.0, 1000.0, 35000.0],
         [0.0, 1000.0, 35000.0],
         [0.0, 1000.0, 35000.0],
+        [0.0, 1000.0, 35000.0],
     ]
-
     TAS = [
         [100.0, 100.0, 100.0],
         [200.0, 200.0, 200.0],
         [270.0, 270.0, 270.0],
         [400.0, 400.0, 400.0],
+        [800.0, 800.0, 800.0],
     ]
     # source:  http://www.aerospaceweb.org/design/scripts/atmosphere/
+    # (confirmed by https://www.newbyte.co.il/calculator/index.php)
+    # Warning: strong discrepancies on supersonic CAS with these sites:
+    # - https://aerotoolbox.com/airspeed-conversions/
+    # - http://www.hochwarth.com/misc/AviationCalculator.html
     expected_EAS = [
         [100.0, 98.5427, 55.7293],
         [200.0, 197.0853, 111.4586],
         [270, 266.0652, 150.4692],
         [400, 394.1707, 222.9173],
+        [800, 788.3413, 445.8346],
     ]
     expected_CAS = [  # currently unused
         [100.0, 98.5799, 56.3313],
         [200.0, 197.3624, 116.1973],
-        [270, 161.8971, 266.6984],
+        [270, 266.6984, 161.8971],
         [400, 395.5782, 252.6355],
+        [800, 789.3505, 480.0151],
     ]
     expected_Mach = [
         [0.2939, 0.2949, 0.3371],
         [0.5877, 0.5898, 0.6743],
         [0.7934, 0.7962, 0.9103],
         [1.1755, 1.1795, 1.3486],
+        [2.3509, 2.3590, 2.6971],
     ]
     expected_Re1 = [
         [6.8459e6, 6.6836e6, 2.6530e6],
         [1.3692e7, 1.3367e7, 5.3059e6],
         [1.8484e7, 1.8046e7, 7.1630e6],
         [2.7384e7, 2.6735e7, 1.0612e7],
+        [5.4768e7, 5.3469e7, 2.1224e7],
     ]
 
     atm = Atmosphere(altitudes)
