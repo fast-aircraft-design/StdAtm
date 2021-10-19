@@ -182,18 +182,41 @@ def test_speed_conversions():
         [2.7384e7, 2.6735e7, 1.0612e7],
         [5.4768e7, 5.3469e7, 2.1224e7],
     ]
+    speed_of_sound = [
+        [340.294, 339.1221, 296.6141],
+        [340.294, 339.1221, 296.6141],
+        [340.294, 339.1221, 296.6141],
+        [340.294, 339.1221, 296.6141],
+        [340.294, 339.1221, 296.6141],
+    ]
 
     atm = Atmosphere(altitudes)
+    assert atm.true_airspeed is None
+    assert atm.equivalent_airspeed is None
+    assert atm.mach is None
+    assert atm.unitary_reynolds is None
+
     atm.true_airspeed = TAS
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=2e-3)
     assert_allclose(atm.mach, expected_Mach, rtol=2e-3)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=2e-3)
+
+    atm.true_airspeed = None
+    assert atm.true_airspeed is None
+    assert atm.equivalent_airspeed is None
+    assert atm.mach is None
+    assert atm.unitary_reynolds is None
 
     atm = Atmosphere(altitudes)
     atm.equivalent_airspeed = expected_EAS
     assert_allclose(atm.true_airspeed, TAS, rtol=2e-3)
     assert_allclose(atm.mach, expected_Mach, rtol=2e-3)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=2e-3)
+
+    # Here we do not instantiate a new Atmosphere, but simply modify Mach number.
+    # Other parameters should be modified accordingly
+    atm.mach = 1.0
+    assert_allclose(atm.true_airspeed, speed_of_sound, rtol=2e-3)
 
     atm = Atmosphere(altitudes)
     atm.mach = expected_Mach
