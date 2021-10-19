@@ -205,22 +205,26 @@ class Atmosphere:
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._mach = np.asarray(value)
+        if value is not None:
+            self._mach = np.asarray(value)
 
     @true_airspeed.setter
     def true_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._true_airspeed = np.asarray(value)
+        if value is not None:
+            self._true_airspeed = np.asarray(value)
 
     @equivalent_airspeed.setter
     def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._equivalent_airspeed = np.asarray(value)
+        if value is not None:
+            self._equivalent_airspeed = np.asarray(value)
 
     @unitary_reynolds.setter
     def unitary_reynolds(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._unitary_reynolds = np.asarray(value)
+        if value is not None:
+            self._unitary_reynolds = np.asarray(value)
 
     def _reset_speeds(self):
         """To be used before setting a new speed value as private attribute."""
