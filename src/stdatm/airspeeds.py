@@ -119,3 +119,32 @@ class UnitaryReynolds(SpeedConverter):
         :return: value of true airspeed in m/s
         """
         return value * atm.kinematic_viscosity
+
+
+class DynamicPressure(SpeedConverter):
+    """
+    Theoretical (true) dynamic pressure in Pa.
+
+    It is given by q = 0.5 * mach**2 * gamma * static_pressure.
+    """
+
+    def compute_value(self, atm):
+        """
+        Computes theoretical (true) dynamic pressure.
+
+        :param atm: the parent Atmosphere instance
+        :return: value of dynamic pressure in Pa
+        """
+        if atm.mach is not None:
+            return 0.7 * atm.mach ** 2 * atm.pressure
+
+    @staticmethod
+    def compute_true_airspeed(atm, value):
+        """
+        Computes true airspeed from dynamic pressure.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of dynamic pressure in Pa
+        :return: value of true airspeed in m/s
+        """
+        return np.sqrt(value / 0.7 / atm.pressure) * atm.speed_of_sound

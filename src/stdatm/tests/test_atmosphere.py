@@ -192,6 +192,23 @@ def test_speed_conversions():
         [27383763, 26734454, 10592556],
         [54767527, 53468908, 21185111],
     ]
+    expected_dynamic_pressure = [
+        [6125.0, 5947.8, 1898.0],
+        [24500.0, 23791.1, 7591.9],
+        [44651.2, 43359.2, 13836.3],
+        [55125.0, 53529.9, 17081.9],
+        [97999.9, 95164.2, 30367.8],
+        [391999.7, 380656.9, 121471.0],
+    ]
+    expected_impact_pressure = [
+        [6258.4, 6078.2, 1952.6],
+        [26689.4, 25932.3, 8495.0],
+        [52127.8, 50672.8, 16946.6],
+        [66684.1, 64838.1, 21911.2],
+        [135479.4, 131780.5, 44684.1],
+        [668493.9, 649486.1, 210939.7],
+    ]
+
     speed_of_sound = [
         [340.294, 339.122, 296.536],
         [340.294, 339.122, 296.536],
@@ -211,6 +228,7 @@ def test_speed_conversions():
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
+    assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
 
     atm.true_airspeed = None
     assert atm.true_airspeed is None
@@ -223,6 +241,7 @@ def test_speed_conversions():
     assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
+    assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
 
     # Here we do not instantiate a new Atmosphere, but simply modify Mach number.
     # Other parameters should be modified accordingly
@@ -234,14 +253,23 @@ def test_speed_conversions():
     assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
+    assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.unitary_reynolds = expected_Re1
     assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
+    assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
 
-    # Check with one altitude value, but several speed values
+    atm = Atmosphere(altitudes)
+    atm.dynamic_pressure = expected_dynamic_pressure
+    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
+    assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
+    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
+
+    # Check with one altitude value, but several speed values ############################
     atm = Atmosphere(35000)
     atm.true_airspeed = np.array(TAS)[:, 2]
     assert_allclose(atm.equivalent_airspeed, np.array(expected_EAS)[:, 2], rtol=1e-4)

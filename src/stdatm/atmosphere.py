@@ -20,7 +20,7 @@ from typing import Sequence, Union
 import numpy as np
 from scipy.constants import R, atmosphere, foot
 
-from .airspeeds import EquivalentAirspeed, Mach, TrueAirspeed, UnitaryReynolds
+from .airspeeds import DynamicPressure, EquivalentAirspeed, Mach, TrueAirspeed, UnitaryReynolds
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -88,6 +88,7 @@ class Atmosphere:
     equivalent_airspeed = EquivalentAirspeed()
     mach = Mach()
     unitary_reynolds = UnitaryReynolds()
+    dynamic_pressure = DynamicPressure()
 
     # pylint: disable=too-many-instance-attributes  # Needed for avoiding redoing computations
     def __init__(
