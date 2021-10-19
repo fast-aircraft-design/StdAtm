@@ -149,3 +149,59 @@ class DynamicPressure(ISpeedConverter):
         :return: value of true airspeed in m/s
         """
         return np.sqrt(value / 0.7 / atm.pressure) * atm.speed_of_sound
+
+
+class ImpactPressure(ISpeedConverter):
+    """
+    Compressible dynamic pressure in Pa.
+    """
+
+    def compute_value(self, atm):
+        """
+        Computes compressible dynamic pressure.
+
+        :param atm: the parent Atmosphere instance
+        :return: value of impact pressure in Pa
+        """
+        if atm.mach is not None:
+            idx_subsonic = atm.mach <= 1.0
+            idx_supersonic = atm.mach > 1
+
+            if np.shape(atm.pressure) != np.shape(atm.mach):
+                pressure = np.broadcast_to(atm.pressure, np.shape(atm.mach))
+            else:
+                pressure = atm.pressure
+
+            value = np.empty_like(atm.mach)
+            value[idx_subsonic] = self._compute_subsonic_impact_pressure(
+                atm.mach[idx_subsonic], pressure[idx_subsonic]
+            )
+            value[idx_supersonic] = self._compute_supersonic_impact_pressure(
+                atm.mach[idx_supersonic], pressure[idx_supersonic]
+            )
+            return value
+
+    @staticmethod
+    def _compute_subsonic_impact_pressure(mach, pressure):
+        return pressure * ((1 + 0.2 * mach ** 2) ** 3.5 - 1)
+
+    @staticmethod
+    def _compute_supersonic_impact_pressure(mach, pressure):
+        # Rayleigh law
+        # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
+        return pressure * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+
+    @staticmethod
+    def compute_true_airspeed(atm, value):
+        """
+        Computes true airspeed from impact pressure.
+
+        NOT IMPLEMENTED.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of impact pressure in Pa
+        :return: value of true airspeed in m/s
+        """
+        raise NotImplementedError(
+            "Computing speed parameters from impact pressure is not implemented."
+        )

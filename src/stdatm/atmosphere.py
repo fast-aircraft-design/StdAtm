@@ -20,7 +20,14 @@ from typing import Sequence, Union
 import numpy as np
 from scipy.constants import R, atmosphere, foot
 
-from .airspeeds import DynamicPressure, EquivalentAirspeed, Mach, TrueAirspeed, UnitaryReynolds
+from .airspeeds import (
+    DynamicPressure,
+    EquivalentAirspeed,
+    ImpactPressure,
+    Mach,
+    TrueAirspeed,
+    UnitaryReynolds,
+)
 from .base import SpeedParameter
 
 AIR_MOLAR_MASS = 28.9647e-3
@@ -90,6 +97,7 @@ class Atmosphere:
     mach = SpeedParameter(Mach())
     unitary_reynolds = SpeedParameter(UnitaryReynolds())
     dynamic_pressure = SpeedParameter(DynamicPressure())
+    impact_pressure = SpeedParameter(ImpactPressure())
 
     # pylint: disable=too-many-instance-attributes  # Needed for avoiding redoing computations
     def __init__(
