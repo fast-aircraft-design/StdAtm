@@ -149,45 +149,49 @@ def test_speed_conversions():
         [400.0, 400.0, 400.0],
         [800.0, 800.0, 800.0],
     ]
-    # source:  http://www.aerospaceweb.org/design/scripts/atmosphere/
-    # (confirmed by https://www.newbyte.co.il/calculator/index.php)
-    # Warning: strong discrepancies on supersonic CAS with these sites:
-    # - https://aerotoolbox.com/airspeed-conversions/
-    # - http://www.hochwarth.com/misc/AviationCalculator.html
+    # source:  https://www.newbyte.co.il/calculator/index.php using "pressure altitude" as output.
+    # This source, with "geometric altitude" as input, agrees with
+    # http://www.aerospaceweb.org/design/scripts/atmosphere/
+    #
+    # Warning: http://www.hochwarth.com/misc/AviationCalculator.html explicitly tells that
+    # the speed conversion is valid only in subsonic domain.
+    # https://aerotoolbox.com/airspeed-conversions/ has the same limitation, though it is not
+    # explicitly written.
+
     expected_EAS = [
-        [100.0, 98.5427, 55.7293],
-        [200.0, 197.0853, 111.4586],
-        [270, 266.0652, 150.4692],
-        [400, 394.1707, 222.9173],
-        [800, 788.3413, 445.8346],
+        [100.0, 98.543, 55.666],
+        [200.0, 197.085, 111.333],
+        [270, 266.065, 150.299],
+        [400, 394.170, 222.666],
+        [800, 788.341, 445.332],
     ]
     expected_CAS = [  # currently unused
-        [100.0, 98.5799, 56.3313],
-        [200.0, 197.3624, 116.1973],
-        [270, 266.6984, 161.8971],
-        [400, 395.5782, 252.6355],
-        [800, 789.3505, 480.0151],
+        [100.0, 98.580, 56.269],
+        [200.0, 197.362, 116.073],
+        [270, 266.698, 161.732],
+        [400, 395.578, 252.396],
+        [800, 789.350, 479.5671],
     ]
     expected_Mach = [
-        [0.2939, 0.2949, 0.3371],
-        [0.5877, 0.5898, 0.6743],
-        [0.7934, 0.7962, 0.9103],
-        [1.1755, 1.1795, 1.3486],
-        [2.3509, 2.3590, 2.6971],
+        [0.29386, 0.29488, 0.33723],
+        [0.58773, 0.58976, 0.67446],
+        [0.79343, 0.79617, 0.91051],
+        [1.17545, 1.17952, 1.34891],
+        [2.35091, 2.35903, 2.69782],
     ]
     expected_Re1 = [
-        [6.8459e6, 6.6836e6, 2.6530e6],
-        [1.3692e7, 1.3367e7, 5.3059e6],
-        [1.8484e7, 1.8046e7, 7.1630e6],
-        [2.7384e7, 2.6735e7, 1.0612e7],
-        [5.4768e7, 5.3469e7, 2.1224e7],
+        [6845941, 6683613, 2648139],
+        [13691882, 13367227, 5296278],
+        [18484040, 18045756, 7149975],
+        [27383763, 26734454, 10592556],
+        [54767527, 53468908, 21185111],
     ]
     speed_of_sound = [
-        [340.294, 339.1221, 296.6141],
-        [340.294, 339.1221, 296.6141],
-        [340.294, 339.1221, 296.6141],
-        [340.294, 339.1221, 296.6141],
-        [340.294, 339.1221, 296.6141],
+        [340.294, 339.122, 296.536],
+        [340.294, 339.122, 296.536],
+        [340.294, 339.122, 296.536],
+        [340.294, 339.122, 296.536],
+        [340.294, 339.122, 296.536],
     ]
 
     atm = Atmosphere(altitudes)
@@ -197,9 +201,9 @@ def test_speed_conversions():
     assert atm.unitary_reynolds is None
 
     atm.true_airspeed = TAS
-    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=2e-3)
-    assert_allclose(atm.mach, expected_Mach, rtol=2e-3)
-    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=2e-3)
+    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
+    assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
+    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
 
     atm.true_airspeed = None
     assert atm.true_airspeed is None
@@ -209,30 +213,30 @@ def test_speed_conversions():
 
     atm = Atmosphere(altitudes)
     atm.equivalent_airspeed = expected_EAS
-    assert_allclose(atm.true_airspeed, TAS, rtol=2e-3)
-    assert_allclose(atm.mach, expected_Mach, rtol=2e-3)
-    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=2e-3)
+    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
+    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
 
     # Here we do not instantiate a new Atmosphere, but simply modify Mach number.
     # Other parameters should be modified accordingly
     atm.mach = 1.0
-    assert_allclose(atm.true_airspeed, speed_of_sound, rtol=2e-3)
+    assert_allclose(atm.true_airspeed, speed_of_sound, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.mach = expected_Mach
-    assert_allclose(atm.true_airspeed, TAS, rtol=2e-3)
-    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=2e-3)
-    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=2.5e-3)
+    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
+    assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.unitary_reynolds = expected_Re1
-    assert_allclose(atm.true_airspeed, TAS, rtol=2e-3)
-    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=2e-3)
-    assert_allclose(atm.mach, expected_Mach, rtol=2.5e-3)
+    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
+    assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
 
     # Check with one altitude value, but several speed values
     atm = Atmosphere(35000)
     atm.true_airspeed = np.array(TAS)[:, 2]
-    assert_allclose(atm.equivalent_airspeed, np.array(expected_EAS)[:, 2], rtol=2e-3)
-    assert_allclose(atm.mach, np.array(expected_Mach)[:, 2], rtol=2e-3)
-    assert_allclose(atm.unitary_reynolds, np.array(expected_Re1)[:, 2], rtol=2e-3)
+    assert_allclose(atm.equivalent_airspeed, np.array(expected_EAS)[:, 2], rtol=1e-4)
+    assert_allclose(atm.mach, np.array(expected_Mach)[:, 2], rtol=1e-4)
+    assert_allclose(atm.unitary_reynolds, np.array(expected_Re1)[:, 2], rtol=1e-4)
