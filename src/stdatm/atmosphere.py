@@ -20,6 +20,8 @@ from typing import Sequence, Union
 import numpy as np
 from scipy.constants import R, atmosphere, foot
 
+from .airspeeds import EquivalentAirspeed, Mach, TrueAirspeed, UnitaryReynolds
+
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
 SEA_LEVEL_PRESSURE = atmosphere
@@ -81,10 +83,16 @@ class Atmosphere:
                [ 50.        , 101.47896457, 269.46211539]])
     """
 
+    # Descriptors for speed conversions
+    true_airspeed = TrueAirspeed()
+    equivalent_airspeed = EquivalentAirspeed()
+    mach = Mach()
+    unitary_reynolds = UnitaryReynolds()
+
     # pylint: disable=too-many-instance-attributes  # Needed for avoiding redoing computations
     def __init__(
         self,
-        altitude: Union[float, Sequence[float]],
+        altitude: Union[float, Sequence],
         delta_t: float = 0.0,
         altitude_in_feet: bool = True,
     ):
@@ -98,7 +106,7 @@ class Atmosphere:
         self.delta_t = delta_t
 
         # Floats will be provided as output if altitude is a scalar
-        self._float_expected = isinstance(altitude, Number)
+        self._scalar_expected = isinstance(altitude, Number)
 
         # For convenience, let's have altitude as numpy arrays and in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
@@ -114,10 +122,6 @@ class Atmosphere:
         self._density = None
         self._speed_of_sound = None
         self._kinematic_viscosity = None
-        self._mach = None
-        self._equivalent_airspeed = None
-        self._true_airspeed = None
-        self._unitary_reynolds = None
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
@@ -126,8 +130,8 @@ class Atmosphere:
         :return: altitude provided at instantiation
         """
         if altitude_in_feet:
-            return self._return_value(self._altitude / foot)
-        return self._return_value(self._altitude)
+            return self.return_value(self._altitude / foot)
+        return self.return_value(self._altitude)
 
     @property
     def delta_t(self) -> Union[float, Sequence[float]]:
@@ -147,7 +151,7 @@ class Atmosphere:
                 SEA_LEVEL_TEMPERATURE - 0.0065 * self._altitude[self._idx_tropo] + self._delta_t
             )
             self._temperature[self._idx_strato] = 216.65 + self._delta_t
-        return self._return_value(self._temperature)
+        return self.return_value(self._temperature)
 
     @property
     def pressure(self) -> Union[float, Sequence[float]]:
@@ -161,21 +165,21 @@ class Atmosphere:
             self._pressure[self._idx_strato] = 22632 * 2.718281 ** (
                 1.7345725 - 0.0001576883 * self._altitude[self._idx_strato]
             )
-        return self._return_value(self._pressure)
+        return self.return_value(self._pressure)
 
     @property
     def density(self) -> Union[float, Sequence[float]]:
         """Density in kg/m3."""
         if self._density is None:
             self._density = self.pressure / AIR_GAS_CONSTANT / self.temperature
-        return self._return_value(self._density)
+        return self.return_value(self._density)
 
     @property
     def speed_of_sound(self) -> Union[float, Sequence[float]]:
         """Speed of sound in m/s."""
         if self._speed_of_sound is None:
             self._speed_of_sound = (1.4 * AIR_GAS_CONSTANT * self.temperature) ** 0.5
-        return self._return_value(self._speed_of_sound)
+        return self.return_value(self._speed_of_sound)
 
     @property
     def kinematic_viscosity(self) -> Union[float, Sequence[float]]:
@@ -185,92 +189,19 @@ class Atmosphere:
                 (0.000017894 * (self.temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
                 * ((SEA_LEVEL_TEMPERATURE + 110.4) / (self.temperature + 110.4))
             ) / self.density
-        return self._return_value(self._kinematic_viscosity)
+        return self.return_value(self._kinematic_viscosity)
 
-    @property
-    def mach(self) -> Union[float, Sequence[float]]:
-        """Mach number."""
-        if self._mach is None and self.true_airspeed is not None:
-            self._mach = self.true_airspeed / self.speed_of_sound
-        return self._return_value(self._mach)
-
-    @property
-    def true_airspeed(self) -> Union[float, Sequence[float]]:
-        """True airspeed (TAS) in m/s."""
-        # Dev note: true_airspeed is the "hub". Other speed values will be calculated
-        # from this true_airspeed.
-        if self._true_airspeed is None:
-            if self._mach is not None:
-                self._true_airspeed = self._mach * self.speed_of_sound
-            if self._equivalent_airspeed is not None:
-                sea_level = Atmosphere(0)
-                self._true_airspeed = self._equivalent_airspeed * np.sqrt(
-                    sea_level.density / self.density
-                )
-            if self._unitary_reynolds is not None:
-                self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
-        return self._return_value(self._true_airspeed)
-
-    @property
-    def equivalent_airspeed(self) -> Union[float, Sequence[float]]:
-        """Equivalent airspeed (EAS) in m/s."""
-        if self._equivalent_airspeed is None and self.true_airspeed is not None:
-            sea_level = Atmosphere(0)
-            self._equivalent_airspeed = self.true_airspeed / np.sqrt(
-                sea_level.density / self.density
-            )
-
-        return self._return_value(self._equivalent_airspeed)
-
-    @property
-    def unitary_reynolds(self) -> Union[float, Sequence[float]]:
-        """Unitary Reynolds number in 1/m."""
-        if self._unitary_reynolds is None and self.true_airspeed is not None:
-            self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
-        return self._return_value(self._unitary_reynolds)
-
-    @mach.setter
-    def mach(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._mach = np.asarray(value)
-
-    @true_airspeed.setter
-    def true_airspeed(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._true_airspeed = np.asarray(value)
-
-    @equivalent_airspeed.setter
-    def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._equivalent_airspeed = np.asarray(value)
-
-    @unitary_reynolds.setter
-    def unitary_reynolds(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._unitary_reynolds = np.asarray(value)
-
-    def _reset_speeds(self):
-        """To be used before setting a new speed value as private attribute."""
-        self._mach = None
-        self._true_airspeed = None
-        self._equivalent_airspeed = None
-        self._unitary_reynolds = None
-
-    def _return_value(self, value):
+    def return_value(self, value):
         """
-        :returns: a float when needed. Otherwise, returns the value itself.
+        :returns: a scalar when needed. Otherwise, returns the value itself.
         """
-        if self._float_expected and value is not None:
+        if self._scalar_expected and value is not None:
             try:
                 # It's faster to try... catch than to test np.size(value).
                 # (but float(value) is slow to fail if value is None, so
-                #  it is why we test it before)
-                return float(value)
-            except TypeError:
+                # it is why we test it before)
+                return np.asarray(value).item()
+            except ValueError:
                 pass
         return value
 
