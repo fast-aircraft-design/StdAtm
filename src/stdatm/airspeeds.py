@@ -14,10 +14,10 @@
 
 import numpy as np
 
-from .base import SpeedConverter
+from .base import ISpeedConverter, SpeedParameter
 
 
-class TrueAirspeed(SpeedConverter):
+class TrueAirspeed(ISpeedConverter):
     """True airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -30,13 +30,14 @@ class TrueAirspeed(SpeedConverter):
         # Each other descriptor provides the method compute_true_airspeed(), so when the value is
         # needed, we loop on other speed attributes and compute the value from the first
         # not-None value.
-        for attr, attr_class in self._speed_attributes.items():
-            attr_value = self._get_attribute_value(atm, f"_{attr}")
+        value = None
+        for attr, attr_class in SpeedParameter.speed_attributes.items():
+            attr_value = getattr(atm, f"_{attr}")
             if attr_value is not None:
-                setattr(atm, self.private_name, attr_class.compute_true_airspeed(atm, attr_value))
+                value = attr_class.compute_true_airspeed(atm, attr_value)
                 break
 
-        return self._get_attribute_value(atm, self.private_name)
+        return value
 
     @staticmethod
     def compute_true_airspeed(atm, value):
@@ -44,7 +45,7 @@ class TrueAirspeed(SpeedConverter):
         return value
 
 
-class EquivalentAirspeed(SpeedConverter):
+class EquivalentAirspeed(ISpeedConverter):
     """Equivalent airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -71,7 +72,7 @@ class EquivalentAirspeed(SpeedConverter):
         return value * np.sqrt(sea_level.density / atm.density)
 
 
-class Mach(SpeedConverter):
+class Mach(ISpeedConverter):
     """Mach number."""
 
     def compute_value(self, atm):
@@ -96,7 +97,7 @@ class Mach(SpeedConverter):
         return value * atm.speed_of_sound
 
 
-class UnitaryReynolds(SpeedConverter):
+class UnitaryReynolds(ISpeedConverter):
     """Unitary Reynolds in 1/m."""
 
     def compute_value(self, atm):
@@ -121,7 +122,7 @@ class UnitaryReynolds(SpeedConverter):
         return value * atm.kinematic_viscosity
 
 
-class DynamicPressure(SpeedConverter):
+class DynamicPressure(ISpeedConverter):
     """
     Theoretical (true) dynamic pressure in Pa.
 
