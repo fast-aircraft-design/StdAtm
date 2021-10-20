@@ -15,10 +15,10 @@
 import numpy as np
 from scipy.optimize import fsolve
 
-from .base import ISpeedConverter, SpeedParameter
+from .base import AbstractSpeedConverter, SpeedParameter
 
 
-class TrueAirspeed(ISpeedConverter):
+class TrueAirspeed(AbstractSpeedConverter):
     """True airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -35,18 +35,17 @@ class TrueAirspeed(ISpeedConverter):
         for attr, attr_class in SpeedParameter.speed_attributes.items():
             attr_value = getattr(atm, f"_{attr}")
             if attr_value is not None:
-                value = attr_class.compute_true_airspeed(atm, attr_value)
+                value = attr_class().compute_true_airspeed(atm, attr_value)
                 break
 
         return value
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """Needed for inheritance, but unused."""
         return value
 
 
-class EquivalentAirspeed(ISpeedConverter):
+class EquivalentAirspeed(AbstractSpeedConverter):
     """Equivalent airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -60,8 +59,7 @@ class EquivalentAirspeed(ISpeedConverter):
             sea_level = type(atm)(0)  # We avoid direct call to Atmosphere to avoid circular import
             return atm.true_airspeed / np.sqrt(sea_level.density / atm.density)
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """
         Computes true airspeed from equivalent airspeed.
 
@@ -73,7 +71,7 @@ class EquivalentAirspeed(ISpeedConverter):
         return value * np.sqrt(sea_level.density / atm.density)
 
 
-class Mach(ISpeedConverter):
+class Mach(AbstractSpeedConverter):
     """Mach number."""
 
     def compute_value(self, atm):
@@ -86,8 +84,7 @@ class Mach(ISpeedConverter):
         if atm.true_airspeed is not None:
             return atm.true_airspeed / atm.speed_of_sound
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """
         Computes true airspeed from Mach number.
 
@@ -98,7 +95,7 @@ class Mach(ISpeedConverter):
         return value * atm.speed_of_sound
 
 
-class UnitaryReynolds(ISpeedConverter):
+class UnitaryReynolds(AbstractSpeedConverter):
     """Unitary Reynolds in 1/m."""
 
     def compute_value(self, atm):
@@ -111,8 +108,7 @@ class UnitaryReynolds(ISpeedConverter):
         if atm.true_airspeed is not None:
             return atm.true_airspeed / atm.kinematic_viscosity
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """
         Computes true airspeed from unitary Reynolds.
 
@@ -123,7 +119,7 @@ class UnitaryReynolds(ISpeedConverter):
         return value * atm.kinematic_viscosity
 
 
-class DynamicPressure(ISpeedConverter):
+class DynamicPressure(AbstractSpeedConverter):
     """
     Theoretical (true) dynamic pressure in Pa.
 
@@ -140,8 +136,7 @@ class DynamicPressure(ISpeedConverter):
         if atm.mach is not None:
             return 0.7 * atm.mach ** 2 * atm.pressure
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """
         Computes true airspeed from dynamic pressure.
 
@@ -152,7 +147,7 @@ class DynamicPressure(ISpeedConverter):
         return np.sqrt(value / 0.7 / atm.pressure) * atm.speed_of_sound
 
 
-class ImpactPressure(ISpeedConverter):
+class ImpactPressure(AbstractSpeedConverter):
     """
     Compressible dynamic pressure in Pa.
     """
@@ -192,23 +187,8 @@ class ImpactPressure(ISpeedConverter):
         # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
         return pressure * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
 
-    @staticmethod
-    def compute_true_airspeed(atm, value):
-        """
-        Computes true airspeed from impact pressure.
 
-        NOT IMPLEMENTED.
-
-        :param atm: the parent Atmosphere instance
-        :param value: value of impact pressure in Pa
-        :return: value of true airspeed in m/s
-        """
-        raise NotImplementedError(
-            "Computing speed parameters from impact pressure is not implemented."
-        )
-
-
-class CalibratedAirspeed(ISpeedConverter):
+class CalibratedAirspeed(AbstractSpeedConverter):
     # Gracey, William (1980), "Measurement of Aircraft Speed and Altitude" (11 MB),
     #   NASA Reference Publication 1046.
     # https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
@@ -251,19 +231,4 @@ class CalibratedAirspeed(ISpeedConverter):
             * sea_level.pressure
             * (2.4 ** 2 / (5.6 - 0.8 * (sea_level.speed_of_sound / cas) ** 2)) ** 2.5
             - sea_level.pressure
-        )
-
-    @staticmethod
-    def compute_true_airspeed(atm, value):
-        """
-        Computes true airspeed from impact pressure.
-
-        NOT IMPLEMENTED.
-
-        :param atm: the parent Atmosphere instance
-        :param value: value of impact pressure in Pa
-        :return: value of true airspeed in m/s
-        """
-        raise NotImplementedError(
-            "Computing speed parameters from calibrated airspeed is not implemented."
         )

@@ -13,11 +13,13 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from copy import copy
 
 import numpy as np
+from scipy.optimize import fsolve
 
 
-class ISpeedConverter(ABC):
+class AbstractSpeedConverter(ABC):
     """Interface for converting speed values."""
 
     @abstractmethod
@@ -29,16 +31,32 @@ class ISpeedConverter(ABC):
         :return: value of the speed parameter, computed from available data in atm
         """
 
-    @staticmethod
-    @abstractmethod
-    def compute_true_airspeed(atm, value):
+    def compute_true_airspeed(self, atm, value):
         """
-        Implement here the calculation of true airspeed from current parameter.
+        Computes true airspeed from parameter value.
+
+        This method provides a default implementation that iteratively solves the problem
+        using :meth:`compute_value`.
+
+        You may overload this method to provide a direct method.
 
         :param atm: the parent Atmosphere instance
         :param value: value of the current speed parameter
         :return: value of true airspeed in m/s
         """
+
+        solver_atm = copy(atm)
+        shape = np.shape(value)
+        value = np.ravel(value)
+        root = fsolve(
+            lambda tas: value - self._compute_parameter(tas, solver_atm, shape),
+            x0=500.0 * np.ones_like(value),
+        )
+        return np.reshape(root, shape)
+
+    def _compute_parameter(self, tas, atm, shape):
+        atm.true_airspeed = np.reshape(tas, shape)
+        return np.ravel(self.compute_value(atm))
 
 
 class SpeedParameter:
@@ -51,9 +69,9 @@ class SpeedParameter:
     #: It is useful for doing operations on all speed parameters.
     speed_attributes = {}
 
-    def __init__(self, speed_converter: ISpeedConverter):
+    def __init__(self, speed_converter: AbstractSpeedConverter):
         self._converter = speed_converter
-        self.__doc__ = self._converter.__doc__  # For correct documentation ins Sphinx
+        self.__doc__ = self._converter.__doc__  # For correct documentation in Sphinx
 
     def __set_name__(self, owner, name):
         self.public_name = name
@@ -74,6 +92,17 @@ class SpeedParameter:
         self.reset_speeds(atm)
         if value is not None:
             value = np.asarray(value)
+            try:
+                expected_shape = np.shape(value + atm.get_altitude())
+            except ValueError as exc:
+                raise RuntimeError(
+                    f" Shape of provided value for {self.public_name} {value.shape} is not "
+                    f"compatible with shape of altitude {atm.get_altitude().shape}."
+                ) from exc
+
+            if value.shape != expected_shape:
+                value = np.broadcast_to(value, expected_shape)
+
         setattr(atm, self.private_name, value)
 
     def reset_speeds(self, atm):
