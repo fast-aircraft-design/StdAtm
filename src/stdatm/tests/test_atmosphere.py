@@ -197,7 +197,6 @@ def run_speed_conversion_tests(with_broadcast: bool):
         [400.0, 400.0, 400.0],
         [800.0, 800.0, 800.0],
     ]
-
     expected_EAS = [
         [100.0, 98.543, 55.666],
         [200.0, 197.085, 111.333],
@@ -206,13 +205,13 @@ def run_speed_conversion_tests(with_broadcast: bool):
         [400, 394.170, 222.666],
         [800, 788.341, 445.332],
     ]
-    expected_CAS = [  # currently unused
+    expected_CAS = [
         [100.0, 98.580, 56.269],
         [200.0, 197.362, 116.073],
         [270, 266.698, 161.732],
         [300.0, 296.465, 182.507],
         [400, 395.578, 252.396],
-        [800, 789.350, 479.5671],
+        [800, 789.350, 479.567],
     ]
     expected_Mach = [
         [0.29386, 0.29488, 0.33723],
@@ -255,6 +254,8 @@ def run_speed_conversion_tests(with_broadcast: bool):
 
     atm.true_airspeed = TAS
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
+    print(atm.calibrated_airspeed)
+    assert_allclose(atm.calibrated_airspeed, expected_CAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
     assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)

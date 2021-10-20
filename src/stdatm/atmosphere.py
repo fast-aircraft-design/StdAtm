@@ -21,6 +21,7 @@ import numpy as np
 from scipy.constants import R, atmosphere, foot
 
 from .airspeeds import (
+    CalibratedAirspeed,
     DynamicPressure,
     EquivalentAirspeed,
     ImpactPressure,
@@ -94,6 +95,7 @@ class Atmosphere:
     # Descriptors for speed conversions
     true_airspeed = SpeedParameter(TrueAirspeed())
     equivalent_airspeed = SpeedParameter(EquivalentAirspeed())
+    calibrated_airspeed = SpeedParameter(CalibratedAirspeed())
     mach = SpeedParameter(Mach())
     unitary_reynolds = SpeedParameter(UnitaryReynolds())
     dynamic_pressure = SpeedParameter(DynamicPressure())

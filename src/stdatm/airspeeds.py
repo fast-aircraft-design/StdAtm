@@ -13,6 +13,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from scipy.optimize import fsolve
 
 from .base import ISpeedConverter, SpeedParameter
 
@@ -204,4 +205,65 @@ class ImpactPressure(ISpeedConverter):
         """
         raise NotImplementedError(
             "Computing speed parameters from impact pressure is not implemented."
+        )
+
+
+class CalibratedAirspeed(ISpeedConverter):
+    # Gracey, William (1980), "Measurement of Aircraft Speed and Altitude" (11 MB),
+    #   NASA Reference Publication 1046.
+    # https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
+    # Eq. 3.16 and 3.17
+    def compute_value(self, atm):
+        if atm.impact_pressure is not None:
+            sea_level = type(atm)(0)
+            impact_pressure = atm.impact_pressure.flatten()  # fsolve requires 1d arrays
+            root = fsolve(
+                lambda x: impact_pressure - self._compute_impact_pressure(x, sea_level),
+                x0=atm.equivalent_airspeed,
+            )
+            return np.reshape(root, np.shape(atm.impact_pressure))
+
+    def _compute_impact_pressure(self, cas, sea_level):
+        idx_low_speed = cas <= sea_level.speed_of_sound
+        idx_high_speed = cas > sea_level.speed_of_sound
+
+        impact_pressure = np.empty_like(cas)
+
+        impact_pressure[idx_low_speed] = self._compute_impact_pressure_low_speed(
+            cas[idx_low_speed], sea_level
+        )
+        impact_pressure[idx_high_speed] = self._compute_impact_pressure_high_speed(
+            cas[idx_high_speed], sea_level
+        )
+        return impact_pressure
+
+    @staticmethod
+    def _compute_impact_pressure_low_speed(cas, sea_level):
+        return sea_level.pressure * (
+            (1 + 1 / 7 * sea_level.density / sea_level.pressure * cas ** 2) ** 3.5 - 1
+        )
+
+    @staticmethod
+    def _compute_impact_pressure_high_speed(cas, sea_level):
+        return (
+            1.2
+            * (cas / sea_level.speed_of_sound) ** 2
+            * sea_level.pressure
+            * (2.4 ** 2 / (5.6 - 0.8 * (sea_level.speed_of_sound / cas) ** 2)) ** 2.5
+            - sea_level.pressure
+        )
+
+    @staticmethod
+    def compute_true_airspeed(atm, value):
+        """
+        Computes true airspeed from impact pressure.
+
+        NOT IMPLEMENTED.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of impact pressure in Pa
+        :return: value of true airspeed in m/s
+        """
+        raise NotImplementedError(
+            "Computing speed parameters from calibrated airspeed is not implemented."
         )
