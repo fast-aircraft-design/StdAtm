@@ -187,44 +187,41 @@ class ImpactPressure(AbstractSpeedConverter):
         # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
         return pressure * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
 
+    def compute_value_from_calibrated_airspeed(self, cas, sea_level):
+        """
+        Computes impact pressure from calibrated airspeed.
 
-class CalibratedAirspeed(AbstractSpeedConverter):
-    # Gracey, William (1980), "Measurement of Aircraft Speed and Altitude" (11 MB),
-    #   NASA Reference Publication 1046.
-    # https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
-    # Eq. 3.16 and 3.17
-    def compute_value(self, atm):
-        if atm.impact_pressure is not None:
-            sea_level = type(atm)(0)
-            impact_pressure = atm.impact_pressure.flatten()  # fsolve requires 1d arrays
-            root = fsolve(
-                lambda x: impact_pressure - self._compute_impact_pressure(x, sea_level),
-                x0=atm.equivalent_airspeed,
-            )
-            return np.reshape(root, np.shape(atm.impact_pressure))
+        Uses Eq. 3.16 and 3.17 from:
+        Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
+        NASA Reference Publication 1046.
+        https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
 
-    def _compute_impact_pressure(self, cas, sea_level):
+        :param cas: calibrated airspeed in m/s
+        :param sea_level: Atmosphere instance at altitude 0
+        :return: value of impact pressure in Pa
+        """
+
         idx_low_speed = cas <= sea_level.speed_of_sound
         idx_high_speed = cas > sea_level.speed_of_sound
 
         impact_pressure = np.empty_like(cas)
 
-        impact_pressure[idx_low_speed] = self._compute_impact_pressure_low_speed(
+        impact_pressure[idx_low_speed] = self._compute_from_cas_low_speed(
             cas[idx_low_speed], sea_level
         )
-        impact_pressure[idx_high_speed] = self._compute_impact_pressure_high_speed(
+        impact_pressure[idx_high_speed] = self._compute_from_cas_high_speed(
             cas[idx_high_speed], sea_level
         )
         return impact_pressure
 
     @staticmethod
-    def _compute_impact_pressure_low_speed(cas, sea_level):
+    def _compute_from_cas_low_speed(cas, sea_level):
         return sea_level.pressure * (
             (1 + 1 / 7 * sea_level.density / sea_level.pressure * cas ** 2) ** 3.5 - 1
         )
 
     @staticmethod
-    def _compute_impact_pressure_high_speed(cas, sea_level):
+    def _compute_from_cas_high_speed(cas, sea_level):
         return (
             1.2
             * (cas / sea_level.speed_of_sound) ** 2
@@ -232,3 +229,24 @@ class CalibratedAirspeed(AbstractSpeedConverter):
             * (2.4 ** 2 / (5.6 - 0.8 * (sea_level.speed_of_sound / cas) ** 2)) ** 2.5
             - sea_level.pressure
         )
+
+
+class CalibratedAirspeed(AbstractSpeedConverter):
+    """Calibrated airspeed in m/s."""
+
+    def compute_value(self, atm):
+        """
+        Computes calibrated airspeed.
+
+        :param atm: the parent Atmosphere instance
+        :return: value of calibrated airspeed in m/s
+        """
+        if atm.impact_pressure is not None:
+            sea_level = type(atm)(0)
+            impact_pressure = np.ravel(atm.impact_pressure)  # fsolve uses 1d arrays
+            root = fsolve(
+                lambda x: impact_pressure
+                - ImpactPressure().compute_value_from_calibrated_airspeed(x, sea_level),
+                x0=atm.equivalent_airspeed,
+            )
+            return np.reshape(root, np.shape(atm.impact_pressure))
