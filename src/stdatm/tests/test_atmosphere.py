@@ -12,8 +12,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from numbers import Number
-
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -72,7 +70,7 @@ def test_atmosphere():
             (14000, 10, 226.65, 0.2167, 14102, 6.7808e-05, 301.80),
         ],
         dtype=[
-            ("alt", "f8"),
+            ("alt", "i8"),
             ("dT", "f4"),
             ("T", "f4"),
             ("rho", "f4"),
@@ -84,9 +82,10 @@ def test_atmosphere():
 
     for values in expectations:
         # Checking with altitude provided as scalar
-        alt = values["alt"] / foot
-        assert isinstance(alt, Number)
-        atm = Atmosphere(alt, values["dT"])
+        # Using AtmosphereSI allows also to test having an integer as input.
+        alt = values["alt"]
+        assert isinstance(alt, (int, np.integer))
+        atm = AtmosphereSI(alt, values["dT"])
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
         assert values["P"] == pytest.approx(atm.pressure, rel=1e-4)

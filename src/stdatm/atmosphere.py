@@ -18,7 +18,7 @@ from numbers import Number
 from typing import Sequence, Union
 
 import numpy as np
-from scipy.constants import R, atmosphere, foot
+from scipy.constants import foot
 
 from .airspeeds import (
     CalibratedAirspeed,
@@ -30,16 +30,12 @@ from .airspeeds import (
     UnitaryReynolds,
 )
 from .base import SpeedParameter, StaticParameter
-from .static_parameters import Temperature, Pressure, Density, SpeedOfSound, KinematicViscosity
+from .static_parameters import Density, KinematicViscosity, Pressure, SpeedOfSound, Temperature
 
-AIR_MOLAR_MASS = 28.9647e-3
-AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
-SEA_LEVEL_PRESSURE = atmosphere
-SEA_LEVEL_TEMPERATURE = 288.15
 TROPOPAUSE = 11000
 
 
-class Atmosphere:
+class AtmosphereSI:
     """
     Simple implementation of International Standard Atmosphere
     for troposphere and stratosphere.
@@ -57,11 +53,11 @@ class Atmosphere:
 
     .. code-block::
         >>> from stdatm import Atmosphere
-        >>> pressure = Atmosphere(30000).pressure # pressure at 30,000 feet, dISA = 0 K
-        >>> density = Atmosphere(5000, 10).density # density at 5,000 feet, dISA = 10 K
+        >>> pressure = AtmosphereSI(10000).pressure # pressure at 10,000 m, dISA = 0 K
+        >>> density = AtmosphereSI(5000, 10).density # density at 5,000 m, dISA = 10 K
 
 
-        >>> atm = Atmosphere([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
+        >>> atm = AtmosphereSI([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
         >>> atm.pressure # pressures for all defined altitudes
         array([101325.        ,  69681.66657158,  30089.59825871])
         >>> atm.kinematic_viscosity # viscosities for all defined altitudes
@@ -73,24 +69,24 @@ class Atmosphere:
 
     .. code-block::
 
-        >>> atm1 = Atmosphere(30000)
+        >>> atm1 = AtmosphereSI(10000)
         >>> atm1.true_airspeed = [100.0, 250.0]
         >>> atm1.mach
-        array([0.32984282, 0.82460705])
+        array([0.33404192, 0.83510481])
 
-        >>> atm2 = Atmosphere([0, 1000, 35000])
+        >>> atm2 = AtmosphereSI([0, 1000, 11000])
         >>> atm2.equivalent_airspeed = 200.0
         >>> atm2.true_airspeed
-        array([200.        , 202.95792913, 359.28282052])
+        array([200.        , 209.76266034, 366.48606529])
 
         >>> atm2.mach = [1.0, 1.5, 2.0]
         >>> atm2.true_airspeed
-        array([340.29526405, 508.68507243, 593.0730464 ])
+        array([340.20668009, 504.07018698, 589.255255  ])
 
         >>> atm2.equivalent_airspeed = [[300, 200, 100],[50, 100, 150]]
         >>> atm2.true_airspeed
-        array([[300.        , 202.95792913, 179.64141026],
-               [ 50.        , 101.47896457, 269.46211539]])
+        array([[300.        , 209.76266034, 183.24303265],
+               [ 50.        , 104.88133017, 274.86454897]])
     """
 
     # Descriptors for static parameters
@@ -112,55 +108,55 @@ class Atmosphere:
     # pylint: disable=too-many-instance-attributes  # Needed for avoiding redoing computations
     def __init__(
         self,
-        altitude: Union[float, Sequence],
-        delta_t: float = 0.0,
-        altitude_in_feet: bool = True,
+        altitude: Union[Number, Sequence],
+        delta_t: Number = 0.0,
     ):
         """
-        :param altitude: altitude (units decided by altitude_in_feet)
-        :param delta_t: temperature increment (°C) applied to whole temperature profile
-        :param altitude_in_feet: if True, altitude should be provided in feet. Otherwise,
-                                 it should be provided in meters.
+        :param altitude: altitude in meters.
+        :param delta_t: temperature increment (K) applied to whole temperature profile
         """
 
+        self.altitude = altitude
         self.delta_t = delta_t
 
-        # Floats will be provided as output if altitude is a scalar
-        self._scalar_expected = isinstance(altitude, Number)
+    @property
+    def altitude(self):
+        """Altitude in meters."""
+        return self.return_value(self._altitude)
 
-        # For convenience, let's have altitude as numpy arrays and in meters in all cases
-        unit_coeff = foot if altitude_in_feet else 1.0
-        self._altitude = np.asarray(altitude) * unit_coeff
+    @altitude.setter
+    def altitude(self, value: Union[float, Sequence[float]]):
+        # Floats will be provided as output if altitude is a scalar
+        self._scalar_expected = isinstance(value, Number)
+
+        self._altitude = np.asarray(value, dtype=np.float64)
 
         # Sets indices for tropopause
         self._idx_tropo = self._altitude < TROPOPAUSE
         self._idx_strato = self._altitude >= TROPOPAUSE
 
-        # Outputs
-        self._temperature = None
-        self._pressure = None
-        self._density = None
-        self._speed_of_sound = None
-        self._kinematic_viscosity = None
-
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
+        Convenience method that provides by default altitude in feet.
+
+        :code:`.get_altitude(False)` is equivalent to :code:`.altitude`.
+
         :param altitude_in_feet: if True, altitude is returned in feet. Otherwise,
                                  it is returned in meters
-        :return: altitude provided at instantiation
+        :return: altitude in feet or in meters
         """
         if altitude_in_feet:
-            return self.return_value(self._altitude / foot)
-        return self.return_value(self._altitude)
+            return self.altitude / foot
+        return self.altitude
 
     @property
     def delta_t(self) -> Union[float, Sequence[float]]:
         """Temperature increment applied to whole temperature profile."""
-        return self._delta_t
+        return self.return_value(self._delta_t)
 
     @delta_t.setter
     def delta_t(self, value: Union[float, Sequence[float]]):
-        self._delta_t = np.asarray(value)
+        self._delta_t = np.asarray(value, dtype=np.float64)
 
     def return_value(self, value):
         """
@@ -177,17 +173,30 @@ class Atmosphere:
         return value
 
 
-class AtmosphereSI(Atmosphere):
-    """Same as :class:`Atmosphere` except that altitudes are always in meters."""
+class Atmosphere(AtmosphereSI):
+    """
+    Same as :class:`AtmosphereSI` except that allows to instantiate with altitude in feet.
 
-    def __init__(self, altitude: Union[float, Sequence[float]], delta_t: float = 0.0):
+    .. Warning::
+
+        Property :attr:`AtmosphereSI.altitude` will still provide altitude in meters.
+        Use :meth:`~AtmosphereSI.get_altitude` to get altitude in feet.
+    """
+
+    def __init__(
+        self,
+        altitude: Union[float, Sequence[float]],
+        delta_t: float = 0.0,
+        altitude_in_feet: bool = True,
+    ):
         """
         :param altitude: altitude in meters
         :param delta_t: temperature increment (°C) applied to whole temperature profile
-        """
-        super().__init__(altitude, delta_t, altitude_in_feet=False)
+        :param altitude_in_feet: if True, altitude should be provided in feet. Otherwise,
+                                 it should be provided in meters.
 
-    @property
-    def altitude(self):
-        """Altitude in meters."""
-        return self.get_altitude(altitude_in_feet=False)
+        """
+        super().__init__(altitude, delta_t)
+
+        if altitude_in_feet:
+            self.altitude *= foot

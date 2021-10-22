@@ -163,7 +163,9 @@ class AtmosphereParameter:
     def __set__(self, atm, value):
         self.reset_parameters(atm)
         if value is not None:
-            value = np.asarray(value)
+            # Note: it's important to specify dtype. In some cases, having integers
+            # as input will lead to an int array that may cause problems later.
+            value = np.asarray(value, dtype=np.float64)
             try:
                 expected_shape = np.shape(value + atm.get_altitude())
             except ValueError as exc:
