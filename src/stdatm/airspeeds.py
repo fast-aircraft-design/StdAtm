@@ -185,7 +185,8 @@ class ImpactPressure(AbstractSpeedParameter):
     def _compute_supersonic_impact_pressure(mach, pressure):
         # Rayleigh law
         # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
-        return pressure * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+        # return pressure * (6 ** 2.5 * 1.2 ** 3.5 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+        return 95.551488 * pressure * mach ** 2 / (5.6 - 0.8 / mach ** 2) ** 2.5 - pressure
 
 
 class CalibratedAirspeed(AbstractSpeedParameter):
