@@ -30,7 +30,14 @@ from .airspeeds import (
     UnitaryReynolds,
 )
 from .base import SpeedParameter, StaticParameter
-from .static_parameters import Density, KinematicViscosity, Pressure, SpeedOfSound, Temperature
+from .static_parameters import (
+    Density,
+    KinematicViscosity,
+    Layer,
+    Pressure,
+    SpeedOfSound,
+    Temperature,
+)
 
 TROPOPAUSE = 11000
 
@@ -90,6 +97,7 @@ class AtmosphereSI:
     """
 
     # Descriptors for static parameters
+    layer = StaticParameter(Layer())
     temperature = StaticParameter(Temperature())
     pressure = StaticParameter(Pressure())
     density = StaticParameter(Density())
@@ -130,10 +138,6 @@ class AtmosphereSI:
         self._scalar_expected = isinstance(value, Number)
 
         self._altitude = np.asarray(value, dtype=np.float64)
-
-        # Sets indices for tropopause
-        self._idx_tropo = self._altitude < TROPOPAUSE
-        self._idx_strato = self._altitude >= TROPOPAUSE
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """

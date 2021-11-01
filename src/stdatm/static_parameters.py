@@ -20,6 +20,19 @@ AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
 SEA_LEVEL_PRESSURE = atmosphere
 SEA_LEVEL_TEMPERATURE = 288.15
+LAYERS = np.array(
+    [
+        (0.0, 288.15, -6.5e-3),
+        (11000.0, 216.65, 0.0),
+        (1e6, np.nan, np.nan),
+    ],
+    dtype=[("altitude", "f8"), ("base_temperature", "f8"), ("temperature_gradient", "f8")],
+)
+
+
+class Layer(AbstractStaticCalculator):
+    def compute_value(self, atm):
+        return np.maximum(0, np.searchsorted(LAYERS["altitude"], atm.altitude, side="right") - 1)
 
 
 class Temperature(AbstractStaticCalculator):
@@ -32,12 +45,12 @@ class Temperature(AbstractStaticCalculator):
         :param atm: the parent Atmosphere instance
         :return: value of air temperature in K
         """
-        altitude = atm._altitude  # we want a numpy array in meters and the inner altitude is that!
-        temperature = np.zeros_like(altitude)
-        temperature[atm._idx_tropo] = (
-            SEA_LEVEL_TEMPERATURE - 0.0065 * altitude[atm._idx_tropo] + atm.delta_t
+        temperature = (
+            LAYERS["base_temperature"][atm.layer]
+            + LAYERS["temperature_gradient"][atm.layer]
+            * (atm.altitude - LAYERS["altitude"][atm.layer])
+            + atm.delta_t
         )
-        temperature[atm._idx_strato] = 216.65 + atm.delta_t
         return temperature
 
 
@@ -52,11 +65,13 @@ class Pressure(AbstractStaticCalculator):
         :return: value of air pressure in Pa
         """
         pressure = np.zeros_like(atm._altitude)
-        pressure[atm._idx_tropo] = (
-            SEA_LEVEL_PRESSURE * (1 - (atm._altitude[atm._idx_tropo] / 44330.78)) ** 5.25587611
+        idx_tropo = atm.layer == 0
+        idx_strato = atm.layer == 1
+        pressure[idx_tropo] = (
+            SEA_LEVEL_PRESSURE * (1 - (atm._altitude[idx_tropo] / 44330.78)) ** 5.25587611
         )
-        pressure[atm._idx_strato] = 22632 * 2.718281 ** (
-            1.7345725 - 0.0001576883 * atm._altitude[atm._idx_strato]
+        pressure[idx_strato] = 22632 * 2.718281 ** (
+            1.7345725 - 0.0001576883 * atm._altitude[idx_strato]
         )
         return pressure
 
