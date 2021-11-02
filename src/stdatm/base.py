@@ -131,14 +131,16 @@ class AbstractSpeedParameter(AbstractParameterCalculator, ABC, base_parameter="t
         return self.compute_base_parameter(atm, value)
 
 
-class AtmosphereParameter:
+class UnsettableAtmosphereParameter:
     """
-    Descriptor class for speed parameters in
+    Descriptor class for unsettable parameters in
     :class:`~fastoad.model_base.atmosphere.atmosphere.Atmosphere`.
+
+    Such parameters cannot be set, but are computed when their value is requested.
     """
 
     #: This dict will associate descriptor name (in Atmosphere class) to the descriptor class.
-    #: It is useful for doing operations on all speed parameters.
+    #: It is useful for doing operations on all parameters.
     parameter_attributes = {}
 
     def __init__(self, parameter_calculator: AbstractParameterCalculator):
@@ -159,25 +161,6 @@ class AtmosphereParameter:
             value = self._parameter_calculator.compute_value(atm)
             setattr(atm, self.private_name, value)
         return atm.return_value(value)
-
-    def __set__(self, atm, value):
-        self.reset_parameters(atm)
-        if value is not None:
-            # Note: it's important to specify dtype. In some cases, having integers
-            # as input will lead to an int array that may cause problems later.
-            value = np.asarray(value, dtype=np.float64)
-            try:
-                expected_shape = np.shape(value + atm.get_altitude())
-            except ValueError as exc:
-                raise RuntimeError(
-                    f" Shape of provided value for {self.public_name} {value.shape} is not "
-                    f"compatible with shape of altitude {atm.get_altitude().shape}."
-                ) from exc
-
-            if value.shape != expected_shape:
-                value = np.broadcast_to(value, expected_shape)
-
-        setattr(atm, self.private_name, value)
 
     @classmethod
     def reset_parameters(cls, atm):
@@ -200,6 +183,34 @@ class AtmosphereParameter:
         return instance.__dict__.get(attr_name)
 
 
+class AtmosphereParameter(UnsettableAtmosphereParameter):
+    """
+    Descriptor class for settable parameters in
+    :class:`~fastoad.model_base.atmosphere.atmosphere.Atmosphere`.
+    """
+
+    def __set__(self, atm, value):
+        self.reset_parameters(atm)
+        if value is not None:
+            # Note: it's important to specify dtype. In some cases, having integers
+            # as input will lead to an int array that may cause problems later.
+            value = np.asarray(value, dtype=np.float64)
+            try:
+                expected_shape = np.shape(value + atm.get_altitude())
+            except ValueError as exc:
+                raise RuntimeError(
+                    f" Shape of provided value for {self.public_name} {value.shape} is not "
+                    f"compatible with shape of altitude {atm.get_altitude().shape}."
+                ) from exc
+
+            if value.shape != expected_shape:
+                value = np.broadcast_to(value, expected_shape)
+
+        setattr(atm, self.private_name, value)
+
+
+# The next two classes are created so that each one has its own class attribute
+# parameter_attributes.
 class StaticParameter(AtmosphereParameter):
     """
     Descriptor class for static parameters in
@@ -208,7 +219,7 @@ class StaticParameter(AtmosphereParameter):
 
     @classmethod
     def reset_parameters(cls, atm):
-        # Is a static parameter is changed, speed parameters should be reset as well.
+        # If a static parameter is changed, speed parameters should be reset as well.
         super().reset_parameters(atm)
         SpeedParameter.reset_parameters(atm)
 
