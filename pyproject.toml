@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "stdatm"
+version = "0.1.0"
+description = "Numpy-oriented Standard Atmosphere model"
+readme = "README.md"
+authors = [
+    "Christophe DAVID <christophe.david@onera.fr>",
+]
+license = "GPL-3.0-only"
+
+packages = [
+    { include = "stdatm", from = "src" },
+]
+exclude = ["**/tests/**"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.17.3"
+scipy = "^1.4.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+pytest-cov = "^3.0"
+coverage = { extras = ["toml"], version = "^6.0" }
+pre-commit = "^2.14.1"
+black = { version = "21.10b0", allow-prereleases = true }
+flake8 = "^4.0.1"
+sphinx = "^4.1.2"
+sphinx-rtd-theme = "^1.0"
+sphinxcontrib-bibtex = "^2.3.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov stdatm --cov-report term-missing --cov-report html --verbose"
+testpaths = ["src", "tests"]
+norecursedirs = ["dist", "build", ".tox"]
+
+[tool.coverage.run]
+branch = true
+source = ["stdatm"]
+omit = ["*/test/*", "*/tests/*"]
+[tool.coverage.paths]
+source = ["src/", "*/site-packages/"]
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self.debug",
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ = = .__main__.:"
+]

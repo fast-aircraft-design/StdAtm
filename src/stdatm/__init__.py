@@ -11,4 +11,15 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from pkg_resources import DistributionNotFound, get_distribution
+
 from .atmosphere import Atmosphere, AtmosphereSI  # noqa: F401
+
+try:
+    # Change here if project is renamed and does not equal the package name
+    dist_name = "StdAtm"
+    __version__ = get_distribution(dist_name).version
+except DistributionNotFound:
+    __version__ = "unknown"
+finally:
+    del get_distribution, DistributionNotFound
