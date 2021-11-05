@@ -251,7 +251,7 @@ def test_speed_conversions():
 
 @pytest.fixture(scope="session")
 def altitude():
-    return np.linspace(0.0, 20000.0, int(1e7))
+    return np.linspace(0.0, 20000.0, int(5e7))
 
 
 @pytest.fixture(scope="session")
@@ -273,12 +273,45 @@ def test_performances_density_array(atmosphere1):
     _ = atmosphere1.density
 
 
-def test_performances_kin_visc_array(atmosphere1):
+def test_performances_kinematic_viscosity_array(atmosphere1):
     _ = atmosphere1.kinematic_viscosity
 
 
-def test_performances_sos_array(atmosphere1):
+def test_performances_speed_of_sound_array(atmosphere1):
     _ = atmosphere1.speed_of_sound
+
+
+def test_performances_TAS_1_array(atmosphere1):
+    _ = atmosphere1.true_airspeed
+
+
+def test_performances_EAS_1_array(atmosphere1):
+    _ = atmosphere1.equivalent_airspeed
+
+
+def test_performances_mach_1_array(atmosphere1):
+    _ = atmosphere1.mach
+
+
+def test_performances_unit_Re_1_array(atmosphere1):
+    _ = atmosphere1.unitary_reynolds
+
+
+def test_performances_TAS_2_array(atmosphere1):
+    atmosphere1.true_airspeed = 500.0
+    _ = atmosphere1.true_airspeed
+
+
+def test_performances_EAS_2_array(atmosphere1):
+    _ = atmosphere1.equivalent_airspeed
+
+
+def test_performances_mach_2_array(atmosphere1):
+    _ = atmosphere1.mach
+
+
+def test_performances_unit_Re_2_array(atmosphere1):
+    _ = atmosphere1.unitary_reynolds
 
 
 def test_performances_reask_array(atmosphere1):
@@ -287,13 +320,37 @@ def test_performances_reask_array(atmosphere1):
     _ = atmosphere1.density
     _ = atmosphere1.kinematic_viscosity
     _ = atmosphere1.speed_of_sound
+    _ = atmosphere1.true_airspeed
+    _ = atmosphere1.equivalent_airspeed
+    _ = atmosphere1.mach
+    _ = atmosphere1.unitary_reynolds
 
 
-def test_performances_loop(altitude):
-    for alt in altitude[::200]:
+def test_performances_loop_static(altitude):
+    for alt in altitude[::1000]:
         atm = AtmosphereSI(alt)
         _ = atm.temperature
         _ = atm.pressure
         _ = atm.density
         _ = atm.kinematic_viscosity
         _ = atm.speed_of_sound
+
+
+def test_performances_loop_speeds_init_TAS(altitude):
+    for alt in altitude[::1000]:
+        atm = AtmosphereSI(alt)
+        atm.true_airspeed = 100.0
+        _ = atm.true_airspeed
+        _ = atm.equivalent_airspeed
+        _ = atm.mach
+        _ = atm.unitary_reynolds
+
+
+def test_performances_loop_speeds_init_mach(altitude):
+    for alt in altitude[::1000]:
+        atm = AtmosphereSI(alt)
+        atm.mach = 0.3
+        _ = atm.true_airspeed
+        _ = atm.equivalent_airspeed
+        _ = atm.mach
+        _ = atm.unitary_reynolds
