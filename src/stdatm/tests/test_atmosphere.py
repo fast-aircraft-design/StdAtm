@@ -19,7 +19,7 @@ import pytest
 from numpy.testing import assert_allclose
 from scipy.constants import foot
 
-from ..atmosphere import Atmosphere
+from ..atmosphere import Atmosphere, AtmosphereSI
 
 
 def test_atmosphere():
@@ -247,3 +247,53 @@ def test_speed_conversions():
     assert_allclose(atm.equivalent_airspeed, np.array(expected_EAS)[:, 2], rtol=1e-4)
     assert_allclose(atm.mach, np.array(expected_Mach)[:, 2], rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, np.array(expected_Re1)[:, 2], rtol=1e-4)
+
+
+@pytest.fixture(scope="session")
+def altitude():
+    return np.linspace(0.0, 20000.0, int(1e7))
+
+
+@pytest.fixture(scope="session")
+def atmosphere1(altitude):
+    atm = AtmosphereSI(altitude)
+    atm.true_airspeed = 200.0
+    return atm
+
+
+def test_performances_temperature_array(atmosphere1):
+    _ = atmosphere1.temperature
+
+
+def test_performances_pressure_array(atmosphere1):
+    _ = atmosphere1.pressure
+
+
+def test_performances_density_array(atmosphere1):
+    _ = atmosphere1.density
+
+
+def test_performances_kin_visc_array(atmosphere1):
+    _ = atmosphere1.kinematic_viscosity
+
+
+def test_performances_sos_array(atmosphere1):
+    _ = atmosphere1.speed_of_sound
+
+
+def test_performances_reask_array(atmosphere1):
+    _ = atmosphere1.temperature
+    _ = atmosphere1.pressure
+    _ = atmosphere1.density
+    _ = atmosphere1.kinematic_viscosity
+    _ = atmosphere1.speed_of_sound
+
+
+def test_performances_loop(altitude):
+    for alt in altitude[::200]:
+        atm = AtmosphereSI(alt)
+        _ = atm.temperature
+        _ = atm.pressure
+        _ = atm.density
+        _ = atm.kinematic_viscosity
+        _ = atm.speed_of_sound
