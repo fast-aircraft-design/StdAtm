@@ -49,9 +49,36 @@ class Atmosphere:
         >>> density = Atmosphere(5000, 10).density # density at 5,000 feet, dISA = 10 K
 
 
-        >>> atm = Atmosphere(np.arange(0,10001,1000, 15)) # init for alt. 0 to 10,000, dISA = 15K
-        >>> temperatures = atm.pressure # pressures for all defined altitudes
-        >>> viscosities = atm.kinematic_viscosity # viscosities for all defined altitudes
+        >>> atm = Atmosphere([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
+        >>> atm.pressure # pressures for all defined altitudes
+        array([101325.        ,  69681.66657158,  30089.59825871])
+        >>> atm.kinematic_viscosity # viscosities for all defined altitudes
+        array([1.46074563e-05, 1.87057660e-05, 3.24486943e-05])
+
+    Also, after instantiating this class, setting one speed parameter allows to get value of other
+    ones.
+    Provided speed values should have a shape compatible with provided altitudes
+
+    .. code-block::
+
+        >>> atm1 = Atmosphere(30000)
+        >>> atm1.true_airspeed = [100.0, 250.0]
+        >>> atm1.mach
+        array([0.32984282, 0.82460705])
+
+        >>> atm2 = Atmosphere([0, 1000, 35000])
+        >>> atm2.equivalent_airspeed = 200.0
+        >>> atm2.true_airspeed
+        array([200.        , 202.95792913, 359.28282052])
+
+        >>> atm2.mach = [1.0, 1.5, 2.0]
+        >>> atm2.true_airspeed
+        array([340.29526405, 508.68507243, 593.0730464 ])
+
+        >>> atm2.equivalent_airspeed = [[300, 200, 100],[50, 100, 150]]
+        >>> atm2.true_airspeed
+        array([[300.        , 202.95792913, 179.64141026],
+               [ 50.        , 101.47896457, 269.46211539]])
     """
 
     # pylint: disable=too-many-instance-attributes  # Needed for avoiding redoing computations
@@ -205,22 +232,26 @@ class Atmosphere:
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._mach = np.asarray(value)
+        if value is not None:
+            self._mach = np.asarray(value)
 
     @true_airspeed.setter
     def true_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._true_airspeed = np.asarray(value)
+        if value is not None:
+            self._true_airspeed = np.asarray(value)
 
     @equivalent_airspeed.setter
     def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._equivalent_airspeed = np.asarray(value)
+        if value is not None:
+            self._equivalent_airspeed = np.asarray(value)
 
     @unitary_reynolds.setter
     def unitary_reynolds(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
-        self._unitary_reynolds = np.asarray(value)
+        if value is not None:
+            self._unitary_reynolds = np.asarray(value)
 
     def _reset_speeds(self):
         """To be used before setting a new speed value as private attribute."""
