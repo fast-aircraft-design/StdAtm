@@ -44,7 +44,7 @@ class Atmosphere:
     Usage:
 
     .. code-block::
-
+        >>> from stdatm import Atmosphere
         >>> pressure = Atmosphere(30000).pressure # pressure at 30,000 feet, dISA = 0 K
         >>> density = Atmosphere(5000, 10).density # density at 5,000 feet, dISA = 10 K
 
@@ -57,7 +57,7 @@ class Atmosphere:
 
     Also, after instantiating this class, setting one speed parameter allows to get value of other
     ones.
-    Provided speed values should have a shape compatible with provided altitudes
+    Provided speed values should have a shape compatible with provided altitudes.
 
     .. code-block::
 

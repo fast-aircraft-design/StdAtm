@@ -4,7 +4,7 @@ Welcome to StdAtm
 
 StdAtm provides a numpy-oriented  Standard Atmosphere model.
 
-See class :class:`stdatm.Atmosphere` for usage.
+See class :class:`~stdatm.atmosphere.Atmosphere` for usage.
 
 Contents
 ========
