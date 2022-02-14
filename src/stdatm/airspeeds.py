@@ -1,6 +1,6 @@
 """Conversions between speed parameters."""
 #  This file is part of StdAtm
-#  Copyright (C) 2021 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -15,10 +15,10 @@
 import numpy as np
 from scipy.optimize import fsolve
 
-from .base import AbstractSpeedConverter, SpeedParameter
+from .base import AbstractSpeedParameter, SpeedParameter
 
 
-class TrueAirspeed(AbstractSpeedConverter):
+class TrueAirspeed(AbstractSpeedParameter):
     """True airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -32,7 +32,7 @@ class TrueAirspeed(AbstractSpeedConverter):
         # needed, we loop on other speed attributes and compute the value from the first
         # not-None value.
         value = None
-        for attr, attr_class in SpeedParameter.speed_attributes.items():
+        for attr, attr_class in SpeedParameter.parameter_attributes.items():
             attr_value = getattr(atm, f"_{attr}")
             if attr_value is not None:
                 value = attr_class().compute_true_airspeed(atm, attr_value)
@@ -45,7 +45,7 @@ class TrueAirspeed(AbstractSpeedConverter):
         return value
 
 
-class EquivalentAirspeed(AbstractSpeedConverter):
+class EquivalentAirspeed(AbstractSpeedParameter):
     """Equivalent airspeed in m/s."""
 
     def compute_value(self, atm):
@@ -71,7 +71,7 @@ class EquivalentAirspeed(AbstractSpeedConverter):
         return value * np.sqrt(sea_level.density / atm.density)
 
 
-class Mach(AbstractSpeedConverter):
+class Mach(AbstractSpeedParameter):
     """Mach number."""
 
     def compute_value(self, atm):
@@ -95,7 +95,7 @@ class Mach(AbstractSpeedConverter):
         return value * atm.speed_of_sound
 
 
-class UnitaryReynolds(AbstractSpeedConverter):
+class UnitaryReynolds(AbstractSpeedParameter):
     """Unitary Reynolds in 1/m."""
 
     def compute_value(self, atm):
@@ -119,7 +119,7 @@ class UnitaryReynolds(AbstractSpeedConverter):
         return value * atm.kinematic_viscosity
 
 
-class DynamicPressure(AbstractSpeedConverter):
+class DynamicPressure(AbstractSpeedParameter):
     """
     Theoretical (true) dynamic pressure in Pa.
 
@@ -147,7 +147,7 @@ class DynamicPressure(AbstractSpeedConverter):
         return np.sqrt(value / 0.7 / atm.pressure) * atm.speed_of_sound
 
 
-class ImpactPressure(AbstractSpeedConverter):
+class ImpactPressure(AbstractSpeedParameter):
     """
     Compressible dynamic pressure in Pa.
     """
@@ -188,7 +188,7 @@ class ImpactPressure(AbstractSpeedConverter):
         return pressure * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
 
 
-class CalibratedAirspeed(AbstractSpeedConverter):
+class CalibratedAirspeed(AbstractSpeedParameter):
     """Calibrated airspeed in m/s."""
 
     def compute_value(self, atm):

@@ -1,6 +1,6 @@
 """Base classes for atmosphere calculations."""
 #  This file is part of StdAtm
-#  Copyright (C) 2021 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -19,8 +19,35 @@ import numpy as np
 from scipy.optimize import fsolve
 
 
-class AbstractSpeedConverter(ABC):
-    """Interface for converting speed values."""
+class AbstractParameterCalculator(ABC):
+    """
+    Abstract class for computing parameter values.
+
+    A subclass has to implement :meth:`compute_value` that will return the value
+    of current parameter from other data in an Atmosphere instance.
+
+    This class provides also the method :meth:`compute_base_parameter` that will
+    compute the "base parameter" from current parameter (and possibly
+    other data in an Atmosphere instance). The default implementation iteratively
+    solves :code:`f(base_parameter) = current_parameter` and should be replaced
+    by an implementation of :code:`g(current_parameter) = base_parameter` when possible.
+
+    The base parameter is defined when subclassing this class, like ::
+
+        class NewParameter(AbstractParameterCalculator, base_parameter="altitude")
+
+    """
+
+    base_parameter: str
+
+    @classmethod
+    def __init_subclass__(cls, *, base_parameter: str = None):
+        """
+
+        :param base_parameter: the base parameter that is central to computations
+        """
+        if base_parameter:
+            cls.base_parameter = base_parameter
 
     @abstractmethod
     def compute_value(self, atm):
@@ -28,8 +55,65 @@ class AbstractSpeedConverter(ABC):
         Implement here the calculation of the current parameter.
 
         :param atm: the parent Atmosphere instance
-        :return: value of the speed parameter, computed from available data in atm
+        :return: value of the parameter, computed from available data in atm
         """
+
+    def compute_base_parameter(self, atm, value):
+        """
+        Computes base parameter from parameter value.
+
+        This method provides a default implementation that iteratively solves the problem
+        using :meth:`compute_value`.
+
+        You may overload this method to provide a direct method.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of the current parameter
+        :return: value of base parameter
+        """
+
+        solver_atm = copy(atm)
+        shape = np.shape(value)
+        value = np.ravel(value)
+        root = fsolve(
+            lambda x: value - self._compute_parameter(x, solver_atm, shape),
+            x0=500.0 * np.ones_like(value),
+        )
+        return np.reshape(root, shape)
+
+    def _compute_parameter(self, base_parameter_value, atm, shape):
+        """
+
+        :param base_parameter_value:
+        :param atm:
+        :param shape:
+        :return:
+        """
+        setattr(atm, self.base_parameter, np.reshape(base_parameter_value, shape))
+        return np.ravel(self.compute_value(atm))
+
+
+class AbstractStaticCalculator(AbstractParameterCalculator, ABC, base_parameter="altitude"):
+    """Abstract class for computing static parameter values."""
+
+    def compute_altitude(self, atm, value):
+        """
+        Computes altitude from parameter value.
+
+        This method provides a default implementation that iteratively solves the problem
+        using :meth:`compute_value`.
+
+        You may overload this method to provide a direct method.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of the current static parameter
+        :return: value of altitude in m
+        """
+        return self.compute_base_parameter(atm, value)
+
+
+class AbstractSpeedParameter(AbstractParameterCalculator, ABC, base_parameter="true_airspeed"):
+    """Abstract class for computing speed values."""
 
     def compute_true_airspeed(self, atm, value):
         """
@@ -44,22 +128,10 @@ class AbstractSpeedConverter(ABC):
         :param value: value of the current speed parameter
         :return: value of true airspeed in m/s
         """
-
-        solver_atm = copy(atm)
-        shape = np.shape(value)
-        value = np.ravel(value)
-        root = fsolve(
-            lambda tas: value - self._compute_parameter(tas, solver_atm, shape),
-            x0=500.0 * np.ones_like(value),
-        )
-        return np.reshape(root, shape)
-
-    def _compute_parameter(self, tas, atm, shape):
-        atm.true_airspeed = np.reshape(tas, shape)
-        return np.ravel(self.compute_value(atm))
+        return self.compute_base_parameter(atm, value)
 
 
-class SpeedParameter:
+class AtmosphereParameter:
     """
     Descriptor class for speed parameters in
     :class:`~fastoad.model_base.atmosphere.atmosphere.Atmosphere`.
@@ -67,16 +139,16 @@ class SpeedParameter:
 
     #: This dict will associate descriptor name (in Atmosphere class) to the descriptor class.
     #: It is useful for doing operations on all speed parameters.
-    speed_attributes = {}
+    parameter_attributes = {}
 
-    def __init__(self, speed_converter: AbstractSpeedConverter):
-        self._converter = speed_converter
-        self.__doc__ = self._converter.__doc__  # For correct documentation in Sphinx
+    def __init__(self, parameter_calculator: AbstractParameterCalculator):
+        self._parameter_calculator = parameter_calculator
+        self.__doc__ = self._parameter_calculator.__doc__  # For correct documentation in Sphinx
 
     def __set_name__(self, owner, name):
         self.public_name = name
         self.private_name = "_" + name
-        self.speed_attributes[name] = type(self._converter)
+        self.parameter_attributes[name] = type(self._parameter_calculator)
 
         setattr(owner, self.private_name, None)
 
@@ -84,12 +156,12 @@ class SpeedParameter:
         value = getattr(atm, self.private_name)
 
         if value is None:
-            value = self._converter.compute_value(atm)
+            value = self._parameter_calculator.compute_value(atm)
             setattr(atm, self.private_name, value)
         return atm.return_value(value)
 
     def __set__(self, atm, value):
-        self.reset_speeds(atm)
+        self.reset_parameters(atm)
         if value is not None:
             value = np.asarray(value)
             try:
@@ -105,7 +177,42 @@ class SpeedParameter:
 
         setattr(atm, self.private_name, value)
 
-    def reset_speeds(self, atm):
-        """To be used before setting a new speed value as private attribute."""
-        for speed_attr in self.speed_attributes:
-            setattr(atm, "_" + speed_attr, None)
+    @classmethod
+    def reset_parameters(cls, atm):
+        """
+        Resets all related parameters to None.
+
+        To be used before setting a parameter value as private attribute to
+        ensure they will be computed again the next time they are used.
+        """
+        for attr in cls.parameter_attributes:
+            setattr(atm, "_" + attr, None)
+
+    @staticmethod
+    def get_attribute_value(instance, attr_name):
+        """
+        :param instance:
+        :param attr_name: name of desired attribute in provided instance
+        :return: the value of the desired attribute, or None if the attribute does not exist
+        """
+        return instance.__dict__.get(attr_name)
+
+
+class StaticParameter(AtmosphereParameter):
+    """
+    Descriptor class for static parameters in
+    :class:`~fastoad.model_base.atmosphere.atmosphere.Atmosphere`.
+    """
+
+    @classmethod
+    def reset_parameters(cls, atm):
+        # Is a static parameter is changed, speed parameters should be reset as well.
+        super().reset_parameters(atm)
+        SpeedParameter.reset_parameters(atm)
+
+
+class SpeedParameter(AtmosphereParameter):
+    """
+    Descriptor class for speed parameters in
+    :class:`~fastoad.model_base.atmosphere.atmosphere.Atmosphere`.
+    """

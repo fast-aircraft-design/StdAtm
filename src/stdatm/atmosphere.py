@@ -2,7 +2,7 @@
 Simple implementation of International Standard Atmosphere.
 """
 #  This file is part of StdAtm
-#  Copyright (C) 2021 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -29,7 +29,8 @@ from .airspeeds import (
     TrueAirspeed,
     UnitaryReynolds,
 )
-from .base import SpeedParameter
+from .base import SpeedParameter, StaticParameter
+from .static_parameters import Temperature, Pressure, Density, SpeedOfSound, KinematicViscosity
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -92,7 +93,14 @@ class Atmosphere:
                [ 50.        , 101.47896457, 269.46211539]])
     """
 
-    # Descriptors for speed conversions
+    # Descriptors for static parameters
+    temperature = StaticParameter(Temperature())
+    pressure = StaticParameter(Pressure())
+    density = StaticParameter(Density())
+    speed_of_sound = StaticParameter(SpeedOfSound())
+    kinematic_viscosity = StaticParameter(KinematicViscosity())
+
+    # Descriptors for speed parameters
     true_airspeed = SpeedParameter(TrueAirspeed())
     equivalent_airspeed = SpeedParameter(EquivalentAirspeed())
     calibrated_airspeed = SpeedParameter(CalibratedAirspeed())
@@ -153,55 +161,6 @@ class Atmosphere:
     @delta_t.setter
     def delta_t(self, value: Union[float, Sequence[float]]):
         self._delta_t = np.asarray(value)
-
-    @property
-    def temperature(self) -> Union[float, Sequence[float]]:
-        """Temperature in K."""
-        if self._temperature is None:
-            self._temperature = np.zeros(self._altitude.shape)
-            self._temperature[self._idx_tropo] = (
-                SEA_LEVEL_TEMPERATURE - 0.0065 * self._altitude[self._idx_tropo] + self._delta_t
-            )
-            self._temperature[self._idx_strato] = 216.65 + self._delta_t
-        return self.return_value(self._temperature)
-
-    @property
-    def pressure(self) -> Union[float, Sequence[float]]:
-        """Pressure in Pa."""
-        if self._pressure is None:
-            self._pressure = np.zeros(self._altitude.shape)
-            self._pressure[self._idx_tropo] = (
-                SEA_LEVEL_PRESSURE
-                * (1 - (self._altitude[self._idx_tropo] / 44330.78)) ** 5.25587611
-            )
-            self._pressure[self._idx_strato] = 22632 * 2.718281 ** (
-                1.7345725 - 0.0001576883 * self._altitude[self._idx_strato]
-            )
-        return self.return_value(self._pressure)
-
-    @property
-    def density(self) -> Union[float, Sequence[float]]:
-        """Density in kg/m3."""
-        if self._density is None:
-            self._density = self.pressure / AIR_GAS_CONSTANT / self.temperature
-        return self.return_value(self._density)
-
-    @property
-    def speed_of_sound(self) -> Union[float, Sequence[float]]:
-        """Speed of sound in m/s."""
-        if self._speed_of_sound is None:
-            self._speed_of_sound = (1.4 * AIR_GAS_CONSTANT * self.temperature) ** 0.5
-        return self.return_value(self._speed_of_sound)
-
-    @property
-    def kinematic_viscosity(self) -> Union[float, Sequence[float]]:
-        """Kinematic viscosity in m2/s."""
-        if self._kinematic_viscosity is None:
-            self._kinematic_viscosity = (
-                (0.000017894 * (self.temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
-                * ((SEA_LEVEL_TEMPERATURE + 110.4) / (self.temperature + 110.4))
-            ) / self.density
-        return self.return_value(self._kinematic_viscosity)
 
     def return_value(self, value):
         """
