@@ -13,7 +13,7 @@ Simple implementation of International Standard Atmosphere.
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+from copy import deepcopy
 from numbers import Number
 from typing import Sequence, Union
 
@@ -218,13 +218,9 @@ class Atmosphere:
                     np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
                 )
             elif self._impact_pressure is not None:
-                raise NotImplementedError(
-                    "Computing speed parameters from impact pressure is not implemented."
-                )
+                return self._compute_true_airspeed("impact_pressure", self._impact_pressure)
             elif self._calibrated_airspeed is not None:
-                raise NotImplementedError(
-                    "Computing speed parameters from calibrated airspeed is not implemented."
-                )
+                return self._compute_true_airspeed("calibrated_airspeed", self._calibrated_airspeed)
 
         return self._return_value(self._true_airspeed)
 
@@ -361,6 +357,18 @@ class Atmosphere:
         if value is not None:
             self._dynamic_pressure = self._adapt_shape(value)
 
+    @impact_pressure.setter
+    def impact_pressure(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._impact_pressure = self._adapt_shape(value)
+
+    @calibrated_airspeed.setter
+    def calibrated_airspeed(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._calibrated_airspeed = self._adapt_shape(value)
+
     def _adapt_shape(self, value):
         value = np.asarray(value)
         try:
@@ -399,6 +407,33 @@ class Atmosphere:
             except TypeError:
                 pass
         return value
+
+    def _compute_true_airspeed(self, parameter_name, value):
+        """
+        Computes true airspeed from parameter value.
+
+        This method provides a default implementation that iteratively solves the problem
+        using :meth:`compute_value`.
+
+        You may overload this method to provide a direct method.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of the current speed parameter
+        :return: value of true airspeed in m/s
+        """
+
+        def _compute_parameter(tas, atm, shape):
+            atm.true_airspeed = np.reshape(tas, shape)
+            return np.ravel(getattr(atm, parameter_name))
+
+        solver_atm = deepcopy(self)
+        shape = np.shape(value)
+        value = np.ravel(value)
+        root = fsolve(
+            lambda tas: value - _compute_parameter(tas, solver_atm, shape),
+            x0=500.0 * np.ones_like(value),
+        )
+        return np.reshape(root, shape)
 
 
 class AtmosphereSI(Atmosphere):

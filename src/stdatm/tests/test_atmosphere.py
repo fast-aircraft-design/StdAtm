@@ -234,6 +234,14 @@ def run_speed_conversion_tests(with_broadcast: bool):
     atm.dynamic_pressure = Checker.expected_dynamic_pressure
     Checker.check_speeds(atm)
 
+    atm = Atmosphere(altitudes)
+    atm.impact_pressure = Checker.expected_impact_pressure
+    Checker.check_speeds(atm)
+
+    atm = Atmosphere(altitudes)
+    atm.calibrated_airspeed = Checker.expected_CAS
+    Checker.check_speeds(atm)
+
     # Check with one altitude value, but several speed values ############################
     atm = Atmosphere(35000)
     atm.true_airspeed = np.array(Checker.expected_TAS)[:, 2]
