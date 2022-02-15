@@ -119,6 +119,7 @@ class Atmosphere:
         self._true_airspeed = None
         self._unitary_reynolds = None
         self._dynamic_pressure = None
+        self._impact_pressure = None
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
@@ -203,17 +204,22 @@ class Atmosphere:
         if self._true_airspeed is None:
             if self._mach is not None:
                 self._true_airspeed = self._mach * self.speed_of_sound
-            if self._equivalent_airspeed is not None:
+            elif self._equivalent_airspeed is not None:
                 sea_level = Atmosphere(0)
                 self._true_airspeed = self._equivalent_airspeed * np.sqrt(
                     sea_level.density / self.density
                 )
-            if self._unitary_reynolds is not None:
+            elif self._unitary_reynolds is not None:
                 self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
-            if self._dynamic_pressure is not None:
+            elif self._dynamic_pressure is not None:
                 self._true_airspeed = (
                     np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
                 )
+            elif self._impact_pressure is not None:
+                raise NotImplementedError(
+                    "Computing speed parameters from impact pressure is not implemented."
+                )
+
         return self._return_value(self._true_airspeed)
 
     @property
@@ -245,6 +251,37 @@ class Atmosphere:
         if self.mach is not None:
             self._dynamic_pressure = 0.7 * self.mach ** 2 * self.pressure
         return self._return_value(self._dynamic_pressure)
+
+    @property
+    def impact_pressure(self) -> Union[float, Sequence[float]]:
+        """Compressible dynamic pressure in Pa."""
+
+        def _compute_subsonic_impact_pressure(mach, p):
+            return p * ((1 + 0.2 * mach ** 2) ** 3.5 - 1)
+
+        def _compute_supersonic_impact_pressure(mach, p):
+            # Rayleigh law
+            # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
+            return p * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+
+        if self.mach is not None:
+            idx_subsonic = self.mach <= 1.0
+            idx_supersonic = self.mach > 1
+
+            if np.shape(self.pressure) != np.shape(self.mach):
+                pressure = np.broadcast_to(self.pressure, np.shape(self.mach))
+            else:
+                pressure = self.pressure
+
+            value = np.empty_like(self.mach)
+            value[idx_subsonic] = _compute_subsonic_impact_pressure(
+                self.mach[idx_subsonic], pressure[idx_subsonic]
+            )
+            value[idx_supersonic] = _compute_supersonic_impact_pressure(
+                self.mach[idx_supersonic], pressure[idx_supersonic]
+            )
+            self._impact_pressure = value
+            return self._return_value(self._impact_pressure)
 
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
@@ -283,6 +320,7 @@ class Atmosphere:
         self._equivalent_airspeed = None
         self._unitary_reynolds = None
         self._dynamic_pressure = None
+        self._impact_pressure = None
 
     def _return_value(self, value):
         """

@@ -133,24 +133,53 @@ def test_atmosphere():
         assert expectations["alt"][idx] / foot == pytest.approx(atm.get_altitude(), rel=1e-3)
 
 
-def test_speed_conversions():
-    """Tests for speed conversions."""
-    altitudes = [
-        [0.0, 1000.0, 35000.0],
-        [0.0, 1000.0, 35000.0],
-        [0.0, 1000.0, 35000.0],
-        [0.0, 1000.0, 35000.0],
-        [0.0, 1000.0, 35000.0],
-        [0.0, 1000.0, 35000.0],
-    ]
-    TAS = [
-        [100.0, 100.0, 100.0],
-        [200.0, 200.0, 200.0],
-        [270.0, 270.0, 270.0],
-        [300.0, 300.0, 300.0],
-        [400.0, 400.0, 400.0],
-        [800.0, 800.0, 800.0],
-    ]
+def test_speed_conversions_with_broadcast():
+    """Tests for speed conversions with different but compatible shapes for altitude and TAS"""
+    run_speed_conversion_tests(with_broadcast=True)
+
+
+def test_speed_conversions_without_broadcast():
+    """Tests for speed conversions with identical shapes for altitude and TAS"""
+    run_speed_conversion_tests(with_broadcast=False)
+
+
+def run_speed_conversion_tests(with_broadcast: bool):
+    if with_broadcast:
+        altitudes = [0.0, 1000.0, 35000.0]
+        TAS = [
+            [100.0],
+            [200.0],
+            [270.0],
+            [300.0],
+            [400.0],
+            [800.0],
+        ]
+        speed_of_sound = [340.294, 339.122, 296.536]
+    else:
+        altitudes = [
+            [0.0, 1000.0, 35000.0],
+            [0.0, 1000.0, 35000.0],
+            [0.0, 1000.0, 35000.0],
+            [0.0, 1000.0, 35000.0],
+            [0.0, 1000.0, 35000.0],
+            [0.0, 1000.0, 35000.0],
+        ]
+        TAS = [
+            [100.0, 100.0, 100.0],
+            [200.0, 200.0, 200.0],
+            [270.0, 270.0, 270.0],
+            [300.0, 300.0, 300.0],
+            [400.0, 400.0, 400.0],
+            [800.0, 800.0, 800.0],
+        ]
+        speed_of_sound = [
+            [340.294, 339.122, 296.536],
+            [340.294, 339.122, 296.536],
+            [340.294, 339.122, 296.536],
+            [340.294, 339.122, 296.536],
+            [340.294, 339.122, 296.536],
+            [340.294, 339.122, 296.536],
+        ]
     # source:  https://www.newbyte.co.il/calculator/index.php using "pressure altitude" as output.
     # This source, with "geometric altitude" as input, agrees with
     # http://www.aerospaceweb.org/design/scripts/atmosphere/
@@ -159,6 +188,15 @@ def test_speed_conversions():
     # the speed conversion is valid only in subsonic domain.
     # https://aerotoolbox.com/airspeed-conversions/ has the same limitation, though it is not
     # explicitly written.
+
+    expected_TAS = [
+        [100.0, 100.0, 100.0],
+        [200.0, 200.0, 200.0],
+        [270.0, 270.0, 270.0],
+        [300.0, 300.0, 300.0],
+        [400.0, 400.0, 400.0],
+        [800.0, 800.0, 800.0],
+    ]
 
     expected_EAS = [
         [100.0, 98.543, 55.666],
@@ -209,15 +247,6 @@ def test_speed_conversions():
         [668493.9, 649486.1, 210939.7],
     ]
 
-    speed_of_sound = [
-        [340.294, 339.122, 296.536],
-        [340.294, 339.122, 296.536],
-        [340.294, 339.122, 296.536],
-        [340.294, 339.122, 296.536],
-        [340.294, 339.122, 296.536],
-        [340.294, 339.122, 296.536],
-    ]
-
     atm = Atmosphere(altitudes)
     assert atm.true_airspeed is None
     assert atm.equivalent_airspeed is None
@@ -229,6 +258,7 @@ def test_speed_conversions():
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
     assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
+    assert_allclose(atm.impact_pressure, expected_impact_pressure, rtol=1e-4)
 
     atm.true_airspeed = None
     assert atm.true_airspeed is None
@@ -238,43 +268,48 @@ def test_speed_conversions():
 
     atm = Atmosphere(altitudes)
     atm.equivalent_airspeed = expected_EAS
-    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.true_airspeed, expected_TAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
     assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
+    assert_allclose(atm.impact_pressure, expected_impact_pressure, rtol=1e-4)
 
     # Here we do not instantiate a new Atmosphere, but simply modify Mach number.
-    # Other parameters should be modified accordingly
+    # Other parameters should be modified accordingly.
     atm.mach = 1.0
     assert_allclose(atm.true_airspeed, speed_of_sound, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.mach = expected_Mach
-    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.true_airspeed, expected_TAS, rtol=1e-4)
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
     assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
+    assert_allclose(atm.impact_pressure, expected_impact_pressure, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.unitary_reynolds = expected_Re1
-    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.true_airspeed, expected_TAS, rtol=1e-4)
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.dynamic_pressure, expected_dynamic_pressure, rtol=1e-4)
+    assert_allclose(atm.impact_pressure, expected_impact_pressure, rtol=1e-4)
 
     atm = Atmosphere(altitudes)
     atm.dynamic_pressure = expected_dynamic_pressure
-    assert_allclose(atm.true_airspeed, TAS, rtol=1e-4)
+    assert_allclose(atm.true_airspeed, expected_TAS, rtol=1e-4)
     assert_allclose(atm.equivalent_airspeed, expected_EAS, rtol=1e-4)
     assert_allclose(atm.mach, expected_Mach, rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, expected_Re1, rtol=1e-4)
+    assert_allclose(atm.impact_pressure, expected_impact_pressure, rtol=1e-4)
 
     # Check with one altitude value, but several speed values ############################
     atm = Atmosphere(35000)
-    atm.true_airspeed = np.array(TAS)[:, 2]
+    atm.true_airspeed = np.array(expected_TAS)[:, 2]
     assert_allclose(atm.equivalent_airspeed, np.array(expected_EAS)[:, 2], rtol=1e-4)
     assert_allclose(atm.mach, np.array(expected_Mach)[:, 2], rtol=1e-4)
     assert_allclose(atm.unitary_reynolds, np.array(expected_Re1)[:, 2], rtol=1e-4)
+    assert_allclose(atm.impact_pressure, np.array(expected_impact_pressure)[:, 2], rtol=1e-4)
 
 
 @pytest.fixture(scope="session")
