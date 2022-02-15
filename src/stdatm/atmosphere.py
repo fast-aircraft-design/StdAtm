@@ -19,6 +19,7 @@ from typing import Sequence, Union
 
 import numpy as np
 from scipy.constants import R, atmosphere, foot
+from scipy.optimize import fsolve
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -120,6 +121,7 @@ class Atmosphere:
         self._unitary_reynolds = None
         self._dynamic_pressure = None
         self._impact_pressure = None
+        self._calibrated_airspeed = None
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
@@ -219,6 +221,10 @@ class Atmosphere:
                 raise NotImplementedError(
                     "Computing speed parameters from impact pressure is not implemented."
                 )
+            elif self._calibrated_airspeed is not None:
+                raise NotImplementedError(
+                    "Computing speed parameters from calibrated airspeed is not implemented."
+                )
 
         return self._return_value(self._true_airspeed)
 
@@ -283,6 +289,48 @@ class Atmosphere:
             self._impact_pressure = value
             return self._return_value(self._impact_pressure)
 
+    @property
+    def calibrated_airspeed(self):
+        """Calibrated airspeed in m/s."""
+        #         Computation is done using Eq. 3.16 and 3.17 from:
+        #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
+        #         NASA Reference Publication 1046.
+        #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
+
+        def _compute_cas_low_speed(impact_pressure, sea_level):
+            return sea_level.speed_of_sound * np.sqrt(
+                5 * ((impact_pressure / sea_level.pressure + 1) ** (1 / 3.5) - 1)
+            )
+
+        def _compute_cas_high_speed(impact_pressure, sea_level):
+            root = fsolve(
+                _equation_cas_high_speed,
+                x0=sea_level.speed_of_sound * np.ones_like(impact_pressure),
+                args=(impact_pressure, sea_level),
+            )
+            return root
+
+        def _equation_cas_high_speed(cas, impact_pressure, sea_level):
+            return cas - sea_level.speed_of_sound * (
+                (impact_pressure / sea_level.pressure + 1)
+                * (7 * (cas / sea_level.speed_of_sound) ** 2 - 1) ** 2.5
+                / (6 ** 2.5 * 1.2 ** 3.5)
+            ) ** (1 / 7)
+
+        if self.impact_pressure is not None:
+            sea_level = Atmosphere(0)
+            impact_pressure = self.impact_pressure
+
+            cas = _compute_cas_low_speed(impact_pressure, sea_level)
+            idx_high_speed = cas > sea_level.speed_of_sound
+            if np.any(idx_high_speed):
+                cas[idx_high_speed] = _compute_cas_high_speed(
+                    impact_pressure[idx_high_speed], sea_level
+                )
+
+            self._calibrated_airspeed = cas
+            return self._return_value(self._calibrated_airspeed)
+
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
@@ -321,6 +369,7 @@ class Atmosphere:
         self._unitary_reynolds = None
         self._dynamic_pressure = None
         self._impact_pressure = None
+        self._calibrated_airspeed = None
 
     def _return_value(self, value):
         """
