@@ -267,20 +267,21 @@ class Atmosphere:
             return p * (166.92158 * mach**7 / (7 * mach**2 - 1) ** 2.5 - 1)
 
         if self.mach is not None:
-            idx_subsonic = self.mach <= 1.0
-            idx_supersonic = self.mach > 1
+            mach = np.asarray(self.mach)
+            idx_subsonic = mach <= 1.0
+            idx_supersonic = mach > 1
 
-            if np.shape(self.pressure) != np.shape(self.mach):
-                pressure = np.broadcast_to(self.pressure, np.shape(self.mach))
+            if np.shape(self.pressure) != np.shape(mach):
+                pressure = np.broadcast_to(self.pressure, np.shape(mach))
             else:
-                pressure = self.pressure
+                pressure = np.asarray(self.pressure)
 
-            value = np.empty_like(self.mach)
+            value = np.empty_like(mach)
             value[idx_subsonic] = _compute_subsonic_impact_pressure(
-                self.mach[idx_subsonic], pressure[idx_subsonic]
+                mach[idx_subsonic], pressure[idx_subsonic]
             )
             value[idx_supersonic] = _compute_supersonic_impact_pressure(
-                self.mach[idx_supersonic], pressure[idx_supersonic]
+                mach[idx_supersonic], pressure[idx_supersonic]
             )
             self._impact_pressure = value
             return self._return_value(self._impact_pressure)
@@ -315,9 +316,9 @@ class Atmosphere:
 
         if self.impact_pressure is not None:
             sea_level = Atmosphere(0)
-            impact_pressure = self.impact_pressure
+            impact_pressure = np.asarray(self.impact_pressure)
 
-            cas = _compute_cas_low_speed(impact_pressure, sea_level)
+            cas = np.asarray(_compute_cas_low_speed(impact_pressure, sea_level))
             idx_high_speed = cas > sea_level.speed_of_sound
             if np.any(idx_high_speed):
                 cas[idx_high_speed] = _compute_cas_high_speed(
@@ -371,16 +372,17 @@ class Atmosphere:
 
     def _adapt_shape(self, value):
         value = np.asarray(value)
-        try:
-            expected_shape = np.shape(value + self.get_altitude())
-        except ValueError as exc:
-            raise RuntimeError(
-                "Shape of provided value is not "
-                f"compatible with shape of altitude {np.shape(self.get_altitude())}."
-            ) from exc
+        if np.size(value) > 1:
+            try:
+                expected_shape = np.shape(value + self.get_altitude())
+            except ValueError as exc:
+                raise RuntimeError(
+                    "Shape of provided value is not "
+                    f"compatible with shape of altitude {np.shape(self.get_altitude())}."
+                ) from exc
 
-        if value.shape != expected_shape:
-            value = np.broadcast_to(value, expected_shape)
+            if value.shape != expected_shape:
+                value = np.broadcast_to(value, expected_shape)
 
         return value
 

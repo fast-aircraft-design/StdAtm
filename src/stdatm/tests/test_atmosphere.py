@@ -19,18 +19,19 @@ import pytest
 from numpy.testing import assert_allclose
 from scipy.constants import foot
 
-from .. import AtmosphereSI
 from ..atmosphere import Atmosphere, AtmosphereSI
 
 
 def test_atmosphere():
     """Tests properties of Atmosphere class."""
-    # Altitudes in meters Values at disa=0 from "Advanced Aircraft Design (
-    # Egbert TORENBEEK, Oxford, UK: John Wiley & Sons Ltd, 2013) Appendix B,
-    # p.397-398" Values at disa=10 from
+    # Altitudes in meters.
+    # Values at disa=0 from "Advanced Aircraft Design
+    # (Egbert TORENBEEK, Oxford, UK: John Wiley & Sons Ltd, 2013) Appendix B,
+    # p.397-398".
+    # Values at disa=10 from
     # https://www.digitaldutch.com/atmoscalc/, with a 0.98749 factor on
     # viscosity because at sea level and disa=0, the calculator gives
-    # 1.81206e-5 for dynamic viscosity, though ISA assumption is 1.7894e-5
+    # 1.81206e-5 for dynamic viscosity, though ISA assumption is 1.7894e-5.
     expectations = np.array(
         [
             (0, 0, 288.15, 1.225, 101325, 1.460e-05, 340.29),
@@ -344,96 +345,179 @@ def atmosphere1(altitude):
     return atm
 
 
-def test_performances_temperature_array(atmosphere1):
-    _ = atmosphere1.temperature
+def test_performances_temperature_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.temperature
+
+    benchmark(func)
 
 
-def test_performances_pressure_array(atmosphere1):
-    _ = atmosphere1.pressure
+def test_performances_pressure_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.pressure
+
+    benchmark(func)
 
 
-def test_performances_density_array(atmosphere1):
-    _ = atmosphere1.density
+def test_performances_density_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.density
+
+    benchmark(func)
 
 
-def test_performances_kinematic_viscosity_array(atmosphere1):
-    _ = atmosphere1.kinematic_viscosity
+def test_performances_kinematic_viscosity_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.kinematic_viscosity
+
+    benchmark(func)
 
 
-def test_performances_speed_of_sound_array(atmosphere1):
-    _ = atmosphere1.speed_of_sound
+def test_performances_speed_of_sound_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.speed_of_sound
+
+    benchmark(func)
 
 
-def test_performances_TAS_1_array(atmosphere1):
-    _ = atmosphere1.true_airspeed
+def test_performances_TAS_1_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.true_airspeed
+
+    benchmark(func)
 
 
-def test_performances_EAS_1_array(atmosphere1):
-    _ = atmosphere1.equivalent_airspeed
+def test_performances_EAS_1_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.equivalent_airspeed
+
+    benchmark(func)
 
 
-def test_performances_mach_1_array(atmosphere1):
-    _ = atmosphere1.mach
+def test_performances_mach_1_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.mach
+
+    benchmark(func)
 
 
-def test_performances_unit_Re_1_array(atmosphere1):
-    _ = atmosphere1.unitary_reynolds
+def test_performances_unit_Re_1_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.unitary_reynolds
+
+    benchmark(func)
 
 
-def test_performances_TAS_2_array(atmosphere1):
+def test_performances_TAS_2_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.true_airspeed
+
     atmosphere1.true_airspeed = 500.0
-    _ = atmosphere1.true_airspeed
+    benchmark(func)
 
 
-def test_performances_EAS_2_array(atmosphere1):
-    _ = atmosphere1.equivalent_airspeed
+def test_performances_EAS_2_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.equivalent_airspeed
+
+    benchmark(func)
 
 
-def test_performances_mach_2_array(atmosphere1):
-    _ = atmosphere1.mach
+def test_performances_mach_2_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.mach
+
+    benchmark(func)
 
 
-def test_performances_unit_Re_2_array(atmosphere1):
-    _ = atmosphere1.unitary_reynolds
+def test_performances_unit_Re_2_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.unitary_reynolds
+
+    benchmark(func)
 
 
-def test_performances_reask_array(atmosphere1):
-    _ = atmosphere1.temperature
-    _ = atmosphere1.pressure
-    _ = atmosphere1.density
-    _ = atmosphere1.kinematic_viscosity
-    _ = atmosphere1.speed_of_sound
-    _ = atmosphere1.true_airspeed
-    _ = atmosphere1.equivalent_airspeed
-    _ = atmosphere1.mach
-    _ = atmosphere1.unitary_reynolds
+def test_performances_reask_array(atmosphere1, benchmark):
+    def func():
+        _ = atmosphere1.temperature
+        _ = atmosphere1.pressure
+        _ = atmosphere1.density
+        _ = atmosphere1.kinematic_viscosity
+        _ = atmosphere1.speed_of_sound
+        _ = atmosphere1.true_airspeed
+        _ = atmosphere1.equivalent_airspeed
+        _ = atmosphere1.mach
+        _ = atmosphere1.unitary_reynolds
+
+    benchmark(func)
 
 
-def test_performances_loop_static(altitude):
-    for alt in altitude[::1000]:
-        atm = AtmosphereSI(alt)
-        _ = atm.temperature
-        _ = atm.pressure
-        _ = atm.density
-        _ = atm.kinematic_viscosity
-        _ = atm.speed_of_sound
+def test_performances_loop_static(altitude, benchmark):
+    def func():
+        for alt in altitude[::1000]:
+            atm = AtmosphereSI(alt)
+            _ = atm.temperature
+            _ = atm.pressure
+            _ = atm.density
+            _ = atm.kinematic_viscosity
+            _ = atm.speed_of_sound
+
+    benchmark(func)
 
 
-def test_performances_loop_speeds_init_TAS(altitude):
-    for alt in altitude[::1000]:
-        atm = AtmosphereSI(alt)
-        atm.true_airspeed = 100.0
-        _ = atm.true_airspeed
-        _ = atm.equivalent_airspeed
-        _ = atm.mach
-        _ = atm.unitary_reynolds
+def test_performances_loop_speeds_init_TAS(altitude, benchmark):
+    def func():
+        for alt in altitude[::1000]:
+            atm = AtmosphereSI(alt)
+            atm.true_airspeed = 100.0
+            _ = atm.true_airspeed
+            _ = atm.equivalent_airspeed
+            _ = atm.mach
+            _ = atm.unitary_reynolds
+            _ = atm.dynamic_pressure
+
+    benchmark(func)
 
 
-def test_performances_loop_speeds_init_mach(altitude):
-    for alt in altitude[::1000]:
-        atm = AtmosphereSI(alt)
-        atm.mach = 0.3
-        _ = atm.true_airspeed
-        _ = atm.equivalent_airspeed
-        _ = atm.mach
-        _ = atm.unitary_reynolds
+def test_performances_loop_speeds_init_mach(altitude, benchmark):
+    def func():
+        for alt in altitude[::1000]:
+            atm = AtmosphereSI(alt)
+            atm.mach = 0.3
+            _ = atm.true_airspeed
+            _ = atm.equivalent_airspeed
+            _ = atm.mach
+            _ = atm.unitary_reynolds
+            _ = atm.dynamic_pressure
+
+    benchmark(func)
+
+
+def test_performances_loop_CAS_init_TAS(altitude, benchmark):
+    def func():
+        for alt in altitude[::2000]:
+            atm = AtmosphereSI(alt)
+            atm.true_airspeed = 100.0
+            _ = atm.calibrated_airspeed
+
+    benchmark(func)
+
+
+def test_performances_loop_CAS_init_mach(altitude, benchmark):
+    def func():
+        for alt in altitude[::2000]:
+            atm = AtmosphereSI(alt)
+            atm.mach = 0.3
+            _ = atm.calibrated_airspeed
+
+    benchmark(func)
+
+
+def test_performances_loop_TAS_init_CAS(altitude, benchmark):
+    def func():
+        for alt in altitude[::20000]:
+            atm = AtmosphereSI(alt)
+            atm.calibrated_airspeed = 100.0
+            _ = atm.true_airspeed
+
+    benchmark(func)
