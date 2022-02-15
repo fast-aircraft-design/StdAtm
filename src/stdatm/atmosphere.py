@@ -118,6 +118,7 @@ class Atmosphere:
         self._equivalent_airspeed = None
         self._true_airspeed = None
         self._unitary_reynolds = None
+        self._dynamic_pressure = None
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
@@ -209,6 +210,10 @@ class Atmosphere:
                 )
             if self._unitary_reynolds is not None:
                 self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
+            if self._dynamic_pressure is not None:
+                self._true_airspeed = (
+                    np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
+                )
         return self._return_value(self._true_airspeed)
 
     @property
@@ -228,6 +233,18 @@ class Atmosphere:
         if self._unitary_reynolds is None and self.true_airspeed is not None:
             self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
         return self._return_value(self._unitary_reynolds)
+
+    @property
+    def dynamic_pressure(self) -> Union[float, Sequence[float]]:
+        """
+        Theoretical (true) dynamic pressure in Pa.
+
+        It is given by q = 0.5 * mach**2 * gamma * static_pressure.
+        """
+
+        if self.mach is not None:
+            self._dynamic_pressure = 0.7 * self.mach ** 2 * self.pressure
+        return self._return_value(self._dynamic_pressure)
 
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
@@ -253,12 +270,19 @@ class Atmosphere:
         if value is not None:
             self._unitary_reynolds = np.asarray(value)
 
+    @dynamic_pressure.setter
+    def dynamic_pressure(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._dynamic_pressure = np.asarray(value)
+
     def _reset_speeds(self):
         """To be used before setting a new speed value as private attribute."""
         self._mach = None
         self._true_airspeed = None
         self._equivalent_airspeed = None
         self._unitary_reynolds = None
+        self._dynamic_pressure = None
 
     def _return_value(self, value):
         """
