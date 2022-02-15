@@ -335,31 +335,46 @@ class Atmosphere:
     def mach(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._mach = np.asarray(value)
+            self._mach = self._adapt_shape(value)
 
     @true_airspeed.setter
     def true_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._true_airspeed = np.asarray(value)
+            self._true_airspeed = self._adapt_shape(value)
 
     @equivalent_airspeed.setter
     def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._equivalent_airspeed = np.asarray(value)
+            self._equivalent_airspeed = self._adapt_shape(value)
 
     @unitary_reynolds.setter
     def unitary_reynolds(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._unitary_reynolds = np.asarray(value)
+            self._unitary_reynolds = self._adapt_shape(value)
 
     @dynamic_pressure.setter
     def dynamic_pressure(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._dynamic_pressure = np.asarray(value)
+            self._dynamic_pressure = self._adapt_shape(value)
+
+    def _adapt_shape(self, value):
+        value = np.asarray(value)
+        try:
+            expected_shape = np.shape(value + self.get_altitude())
+        except ValueError as exc:
+            raise RuntimeError(
+                "Shape of provided value is not "
+                f"compatible with shape of altitude {np.shape(self.get_altitude())}."
+            ) from exc
+
+        if value.shape != expected_shape:
+            value = np.broadcast_to(value, expected_shape)
+
+        return value
 
     def _reset_speeds(self):
         """To be used before setting a new speed value as private attribute."""
