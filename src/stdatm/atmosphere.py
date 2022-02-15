@@ -251,7 +251,7 @@ class Atmosphere:
         """
 
         if self.mach is not None:
-            self._dynamic_pressure = 0.7 * self.mach ** 2 * self.pressure
+            self._dynamic_pressure = 0.7 * self.mach**2 * self.pressure
         return self._return_value(self._dynamic_pressure)
 
     @property
@@ -259,12 +259,12 @@ class Atmosphere:
         """Compressible dynamic pressure in Pa."""
 
         def _compute_subsonic_impact_pressure(mach, p):
-            return p * ((1 + 0.2 * mach ** 2) ** 3.5 - 1)
+            return p * ((1 + 0.2 * mach**2) ** 3.5 - 1)
 
         def _compute_supersonic_impact_pressure(mach, p):
             # Rayleigh law
             # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
-            return p * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+            return p * (166.92158 * mach**7 / (7 * mach**2 - 1) ** 2.5 - 1)
 
         if self.mach is not None:
             idx_subsonic = self.mach <= 1.0
@@ -310,7 +310,7 @@ class Atmosphere:
             return cas - sea_level.speed_of_sound * (
                 (impact_pressure / sea_level.pressure + 1)
                 * (7 * (cas / sea_level.speed_of_sound) ** 2 - 1) ** 2.5
-                / (6 ** 2.5 * 1.2 ** 3.5)
+                / (6**2.5 * 1.2**3.5)
             ) ** (1 / 7)
 
         if self.impact_pressure is not None:
