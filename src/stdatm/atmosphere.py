@@ -13,12 +13,13 @@ Simple implementation of International Standard Atmosphere.
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+from copy import deepcopy
 from numbers import Number
 from typing import Sequence, Union
 
 import numpy as np
 from scipy.constants import R, atmosphere, foot
+from scipy.optimize import fsolve
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -118,6 +119,9 @@ class Atmosphere:
         self._equivalent_airspeed = None
         self._true_airspeed = None
         self._unitary_reynolds = None
+        self._dynamic_pressure = None
+        self._impact_pressure = None
+        self._calibrated_airspeed = None
 
     def get_altitude(self, altitude_in_feet: bool = True) -> Union[float, Sequence[float]]:
         """
@@ -202,13 +206,22 @@ class Atmosphere:
         if self._true_airspeed is None:
             if self._mach is not None:
                 self._true_airspeed = self._mach * self.speed_of_sound
-            if self._equivalent_airspeed is not None:
+            elif self._equivalent_airspeed is not None:
                 sea_level = Atmosphere(0)
                 self._true_airspeed = self._equivalent_airspeed * np.sqrt(
                     sea_level.density / self.density
                 )
-            if self._unitary_reynolds is not None:
+            elif self._unitary_reynolds is not None:
                 self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
+            elif self._dynamic_pressure is not None:
+                self._true_airspeed = (
+                    np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
+                )
+            elif self._impact_pressure is not None:
+                return self._compute_true_airspeed("impact_pressure", self._impact_pressure)
+            elif self._calibrated_airspeed is not None:
+                return self._compute_true_airspeed("calibrated_airspeed", self._calibrated_airspeed)
+
         return self._return_value(self._true_airspeed)
 
     @property
@@ -229,29 +242,147 @@ class Atmosphere:
             self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
         return self._return_value(self._unitary_reynolds)
 
+    @property
+    def dynamic_pressure(self) -> Union[float, Sequence[float]]:
+        """
+        Theoretical (true) dynamic pressure in Pa.
+
+        It is given by q = 0.5 * mach**2 * gamma * static_pressure.
+        """
+
+        if self.mach is not None:
+            self._dynamic_pressure = 0.7 * self.mach ** 2 * self.pressure
+        return self._return_value(self._dynamic_pressure)
+
+    @property
+    def impact_pressure(self) -> Union[float, Sequence[float]]:
+        """Compressible dynamic pressure in Pa."""
+
+        def _compute_subsonic_impact_pressure(mach, p):
+            return p * ((1 + 0.2 * mach ** 2) ** 3.5 - 1)
+
+        def _compute_supersonic_impact_pressure(mach, p):
+            # Rayleigh law
+            # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
+            return p * (166.92158 * mach ** 7 / (7 * mach ** 2 - 1) ** 2.5 - 1)
+
+        if self.mach is not None:
+            idx_subsonic = self.mach <= 1.0
+            idx_supersonic = self.mach > 1
+
+            if np.shape(self.pressure) != np.shape(self.mach):
+                pressure = np.broadcast_to(self.pressure, np.shape(self.mach))
+            else:
+                pressure = self.pressure
+
+            value = np.empty_like(self.mach)
+            value[idx_subsonic] = _compute_subsonic_impact_pressure(
+                self.mach[idx_subsonic], pressure[idx_subsonic]
+            )
+            value[idx_supersonic] = _compute_supersonic_impact_pressure(
+                self.mach[idx_supersonic], pressure[idx_supersonic]
+            )
+            self._impact_pressure = value
+            return self._return_value(self._impact_pressure)
+
+    @property
+    def calibrated_airspeed(self):
+        """Calibrated airspeed in m/s."""
+        #         Computation is done using Eq. 3.16 and 3.17 from:
+        #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
+        #         NASA Reference Publication 1046.
+        #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
+
+        def _compute_cas_low_speed(impact_pressure, sea_level):
+            return sea_level.speed_of_sound * np.sqrt(
+                5 * ((impact_pressure / sea_level.pressure + 1) ** (1 / 3.5) - 1)
+            )
+
+        def _compute_cas_high_speed(impact_pressure, sea_level):
+            root = fsolve(
+                _equation_cas_high_speed,
+                x0=sea_level.speed_of_sound * np.ones_like(impact_pressure),
+                args=(impact_pressure, sea_level),
+            )
+            return root
+
+        def _equation_cas_high_speed(cas, impact_pressure, sea_level):
+            return cas - sea_level.speed_of_sound * (
+                (impact_pressure / sea_level.pressure + 1)
+                * (7 * (cas / sea_level.speed_of_sound) ** 2 - 1) ** 2.5
+                / (6 ** 2.5 * 1.2 ** 3.5)
+            ) ** (1 / 7)
+
+        if self.impact_pressure is not None:
+            sea_level = Atmosphere(0)
+            impact_pressure = self.impact_pressure
+
+            cas = _compute_cas_low_speed(impact_pressure, sea_level)
+            idx_high_speed = cas > sea_level.speed_of_sound
+            if np.any(idx_high_speed):
+                cas[idx_high_speed] = _compute_cas_high_speed(
+                    impact_pressure[idx_high_speed], sea_level
+                )
+
+            self._calibrated_airspeed = cas
+            return self._return_value(self._calibrated_airspeed)
+
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._mach = np.asarray(value)
+            self._mach = self._adapt_shape(value)
 
     @true_airspeed.setter
     def true_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._true_airspeed = np.asarray(value)
+            self._true_airspeed = self._adapt_shape(value)
 
     @equivalent_airspeed.setter
     def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._equivalent_airspeed = np.asarray(value)
+            self._equivalent_airspeed = self._adapt_shape(value)
 
     @unitary_reynolds.setter
     def unitary_reynolds(self, value: Union[float, Sequence[float]]):
         self._reset_speeds()
         if value is not None:
-            self._unitary_reynolds = np.asarray(value)
+            self._unitary_reynolds = self._adapt_shape(value)
+
+    @dynamic_pressure.setter
+    def dynamic_pressure(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._dynamic_pressure = self._adapt_shape(value)
+
+    @impact_pressure.setter
+    def impact_pressure(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._impact_pressure = self._adapt_shape(value)
+
+    @calibrated_airspeed.setter
+    def calibrated_airspeed(self, value: Union[float, Sequence[float]]):
+        self._reset_speeds()
+        if value is not None:
+            self._calibrated_airspeed = self._adapt_shape(value)
+
+    def _adapt_shape(self, value):
+        value = np.asarray(value)
+        try:
+            expected_shape = np.shape(value + self.get_altitude())
+        except ValueError as exc:
+            raise RuntimeError(
+                "Shape of provided value is not "
+                f"compatible with shape of altitude {np.shape(self.get_altitude())}."
+            ) from exc
+
+        if value.shape != expected_shape:
+            value = np.broadcast_to(value, expected_shape)
+
+        return value
 
     def _reset_speeds(self):
         """To be used before setting a new speed value as private attribute."""
@@ -259,6 +390,9 @@ class Atmosphere:
         self._true_airspeed = None
         self._equivalent_airspeed = None
         self._unitary_reynolds = None
+        self._dynamic_pressure = None
+        self._impact_pressure = None
+        self._calibrated_airspeed = None
 
     def _return_value(self, value):
         """
@@ -273,6 +407,33 @@ class Atmosphere:
             except TypeError:
                 pass
         return value
+
+    def _compute_true_airspeed(self, parameter_name, value):
+        """
+        Computes true airspeed from parameter value.
+
+        This method provides a default implementation that iteratively solves the problem
+        using :meth:`compute_value`.
+
+        You may overload this method to provide a direct method.
+
+        :param atm: the parent Atmosphere instance
+        :param value: value of the current speed parameter
+        :return: value of true airspeed in m/s
+        """
+
+        def _compute_parameter(tas, atm, shape):
+            atm.true_airspeed = np.reshape(tas, shape)
+            return np.ravel(getattr(atm, parameter_name))
+
+        solver_atm = deepcopy(self)
+        shape = np.shape(value)
+        value = np.ravel(value)
+        root = fsolve(
+            lambda tas: value - _compute_parameter(tas, solver_atm, shape),
+            x0=500.0 * np.ones_like(value),
+        )
+        return np.reshape(root, shape)
 
 
 class AtmosphereSI(Atmosphere):
