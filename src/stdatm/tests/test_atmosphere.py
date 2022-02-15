@@ -19,18 +19,19 @@ import pytest
 from numpy.testing import assert_allclose
 from scipy.constants import foot
 
-from .. import AtmosphereSI
 from ..atmosphere import Atmosphere, AtmosphereSI
 
 
 def test_atmosphere():
     """Tests properties of Atmosphere class."""
-    # Altitudes in meters Values at disa=0 from "Advanced Aircraft Design (
-    # Egbert TORENBEEK, Oxford, UK: John Wiley & Sons Ltd, 2013) Appendix B,
-    # p.397-398" Values at disa=10 from
+    # Altitudes in meters.
+    # Values at disa=0 from "Advanced Aircraft Design
+    # (Egbert TORENBEEK, Oxford, UK: John Wiley & Sons Ltd, 2013) Appendix B,
+    # p.397-398".
+    # Values at disa=10 from
     # https://www.digitaldutch.com/atmoscalc/, with a 0.98749 factor on
     # viscosity because at sea level and disa=0, the calculator gives
-    # 1.81206e-5 for dynamic viscosity, though ISA assumption is 1.7894e-5
+    # 1.81206e-5 for dynamic viscosity, though ISA assumption is 1.7894e-5.
     expectations = np.array(
         [
             (0, 0, 288.15, 1.225, 101325, 1.460e-05, 340.29),
