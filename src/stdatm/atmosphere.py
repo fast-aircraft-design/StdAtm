@@ -2,7 +2,7 @@
 Simple implementation of International Standard Atmosphere.
 """
 #  This file is part of StdAtm
-#  Copyright (C) 2021 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -218,9 +218,13 @@ class Atmosphere:
                     np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
                 )
             elif self._impact_pressure is not None:
-                return self._compute_true_airspeed("impact_pressure", self._impact_pressure)
+                self._true_airspeed = self._compute_true_airspeed(
+                    "impact_pressure", self._impact_pressure
+                )
             elif self._calibrated_airspeed is not None:
-                return self._compute_true_airspeed("calibrated_airspeed", self._calibrated_airspeed)
+                self._true_airspeed = self._compute_true_airspeed(
+                    "calibrated_airspeed", self._calibrated_airspeed
+                )
 
         return self._return_value(self._true_airspeed)
 
