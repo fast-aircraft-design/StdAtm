@@ -14,7 +14,7 @@ Simple implementation of International Standard Atmosphere.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from copy import deepcopy
-from numbers import Number
+from numbers import Number, Real
 from typing import Sequence, Union
 
 import numpy as np
@@ -123,7 +123,10 @@ class Atmosphere:
 
         # For convenience, let's have altitude as numpy arrays and in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
-        self._altitude = np.asarray(altitude) * unit_coeff
+        if isinstance(altitude, Real):
+            self._altitude = altitude * unit_coeff
+        else:
+            self._altitude = np.asarray(altitude) * unit_coeff
 
         # Sets indices for tropopause
         self._idx_tropo = self._altitude < TROPOPAUSE
@@ -153,31 +156,56 @@ class Atmosphere:
 
     @delta_t.setter
     def delta_t(self, value: Union[float, Sequence[float]]):
-        self._delta_t = np.asarray(value)
+        self._delta_t = value
 
     @property
     def temperature(self) -> Union[float, Sequence[float]]:
         """Temperature in K."""
         if self._temperature is None:
-            self._temperature = np.zeros(self._altitude.shape)
-            self._temperature[self._idx_tropo] = (
-                SEA_LEVEL_TEMPERATURE - 0.0065 * self._altitude[self._idx_tropo] + self._delta_t
-            )
-            self._temperature[self._idx_strato] = 216.65 + self._delta_t
+
+            def troposphere_temperature(alt):
+                return SEA_LEVEL_TEMPERATURE - 0.0065 * alt + self._delta_t
+
+            def stratosphere_temperature():
+                return 216.65 + self._delta_t
+
+            if isinstance(self._altitude, Real):
+                if self._idx_tropo:
+                    self._temperature = troposphere_temperature(self._altitude)
+                else:
+                    self._temperature = stratosphere_temperature()
+            else:
+                altitude = np.asarray(self._altitude)
+                self._temperature = np.zeros(altitude.shape)
+                self._temperature[self._idx_tropo] = troposphere_temperature(
+                    altitude[self._idx_tropo]
+                )
+                self._temperature[self._idx_strato] = stratosphere_temperature()
+
         return self.return_value(self._temperature)
 
     @property
     def pressure(self) -> Union[float, Sequence[float]]:
         """Pressure in Pa."""
         if self._pressure is None:
-            self._pressure = np.zeros(self._altitude.shape)
-            self._pressure[self._idx_tropo] = (
-                SEA_LEVEL_PRESSURE
-                * (1 - (self._altitude[self._idx_tropo] / 44330.78)) ** 5.25587611
-            )
-            self._pressure[self._idx_strato] = 22632 * 2.718281 ** (
-                1.7345725 - 0.0001576883 * self._altitude[self._idx_strato]
-            )
+
+            def troposphere_pressure(alt):
+                return SEA_LEVEL_PRESSURE * (1 - (alt / 44330.78)) ** 5.25587611
+
+            def stratosphere_pressure(alt):
+                return 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * alt)
+
+            if isinstance(self._altitude, Real):
+                if self._idx_tropo:
+                    self._pressure = troposphere_pressure(self._altitude)
+                else:
+                    self._pressure = stratosphere_pressure(self._altitude)
+            else:
+                altitude = np.asarray(self._altitude)
+                self._pressure = np.zeros(self._altitude.shape)
+                self._pressure[self._idx_tropo] = troposphere_pressure(altitude[self._idx_tropo])
+                self._pressure[self._idx_strato] = stratosphere_pressure(altitude[self._idx_strato])
+
         return self.return_value(self._pressure)
 
     @property
@@ -208,12 +236,12 @@ class Atmosphere:
         """
         :returns: a scalar when needed. Otherwise, returns the value itself.
         """
-        if self._scalar_expected:
-            try:
-                # It's faster to try... catch than to test np.size(value).
-                return np.asarray(value).item()
-            except ValueError:
-                pass
+        # if self._scalar_expected:
+        #     try:
+        #         # It's faster to try... catch than to test np.size(value).
+        #         return np.asarray(value).item()
+        #     except ValueError:
+        #         pass
         return value
 
     def _compute_true_airspeed(self, parameter_name, value):

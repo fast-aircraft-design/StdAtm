@@ -11,6 +11,7 @@
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from numbers import Real
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -160,23 +161,31 @@ class ImpactPressure(AbstractSpeedConverter):
         :return: value of impact pressure in Pa
         """
         if atm.mach is not None:
-            mach = np.asarray(atm.mach)
-            idx_subsonic = atm.mach <= 1.0
-            idx_supersonic = atm.mach > 1
-
-            if np.shape(atm.pressure) != np.shape(atm.mach):
-                pressure = np.broadcast_to(atm.pressure, np.shape(atm.mach))
+            mach = atm.mach
+            pressure = atm.pressure
+            if isinstance(mach, Real) and isinstance(pressure, Real):
+                if mach <= 1.0:
+                    return self._compute_subsonic_impact_pressure(mach, pressure)
+                else:
+                    return self._compute_supersonic_impact_pressure(mach, pressure)
             else:
-                pressure = np.asarray(atm.pressure)
+                mach = np.asarray(atm.mach)
+                idx_subsonic = atm.mach <= 1.0
+                idx_supersonic = atm.mach > 1
 
-            value = np.empty_like(atm.mach)
-            value[idx_subsonic] = self._compute_subsonic_impact_pressure(
-                mach[idx_subsonic], pressure[idx_subsonic]
-            )
-            value[idx_supersonic] = self._compute_supersonic_impact_pressure(
-                mach[idx_supersonic], pressure[idx_supersonic]
-            )
-            return value
+                if np.shape(atm.pressure) != np.shape(atm.mach):
+                    pressure = np.broadcast_to(atm.pressure, np.shape(atm.mach))
+                else:
+                    pressure = np.asarray(atm.pressure)
+
+                value = np.empty_like(atm.mach)
+                value[idx_subsonic] = self._compute_subsonic_impact_pressure(
+                    mach[idx_subsonic], pressure[idx_subsonic]
+                )
+                value[idx_supersonic] = self._compute_supersonic_impact_pressure(
+                    mach[idx_supersonic], pressure[idx_supersonic]
+                )
+                return value
 
     @staticmethod
     def _compute_subsonic_impact_pressure(mach, pressure):
@@ -206,14 +215,17 @@ class CalibratedAirspeed(AbstractSpeedConverter):
         """
         if atm.impact_pressure is not None:
             sea_level = type(atm)(0)
-            impact_pressure = np.asarray(atm.impact_pressure)
+            impact_pressure = atm.impact_pressure
 
-            cas = np.asarray(self._compute_cas_low_speed(impact_pressure, sea_level))
-            idx_high_speed = cas > sea_level.speed_of_sound
-            if np.any(idx_high_speed):
-                cas[idx_high_speed] = self._compute_cas_high_speed(
-                    impact_pressure[idx_high_speed], sea_level
-                )
+            cas = self._compute_cas_low_speed(impact_pressure, sea_level)
+            if isinstance(cas, Real) and cas > sea_level.speed_of_sound:
+                cas = self._compute_cas_high_speed(impact_pressure, sea_level)
+            else:
+                idx_high_speed = cas > sea_level.speed_of_sound
+                if np.any(idx_high_speed):
+                    cas[idx_high_speed] = self._compute_cas_high_speed(
+                        impact_pressure[idx_high_speed], sea_level
+                    )
 
             return cas
 
