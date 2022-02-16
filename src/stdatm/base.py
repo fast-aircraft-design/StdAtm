@@ -1,6 +1,6 @@
 """Base classes for atmosphere calculations."""
 #  This file is part of StdAtm
-#  Copyright (C) 2021 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -92,16 +92,17 @@ class SpeedParameter:
         self.reset_speeds(atm)
         if value is not None:
             value = np.asarray(value)
-            try:
-                expected_shape = np.shape(value + atm.get_altitude())
-            except ValueError as exc:
-                raise RuntimeError(
-                    f" Shape of provided value for {self.public_name} {value.shape} is not "
-                    f"compatible with shape of altitude {atm.get_altitude().shape}."
-                ) from exc
+            if np.size(value) > 1:
+                try:
+                    expected_shape = np.shape(value + atm.get_altitude())
+                except ValueError as exc:
+                    raise RuntimeError(
+                        f" Shape of provided value for {self.public_name} {value.shape} is not "
+                        f"compatible with shape of altitude {atm.get_altitude().shape}."
+                    ) from exc
 
-            if value.shape != expected_shape:
-                value = np.broadcast_to(value, expected_shape)
+                if value.shape != expected_shape:
+                    value = np.broadcast_to(value, expected_shape)
 
         setattr(atm, self.private_name, value)
 
