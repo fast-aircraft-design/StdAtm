@@ -14,12 +14,9 @@ repos:
         entry: flake8
         types: [ python ]
 
-  - repo: https://github.com/python-poetry/poetry
-    rev: ''
-    hooks:
-      - id: poetry-check
-        name: Poetry check
-
-      - id: poetry-export
-        name: Sync doc requirements
-        args: [ "--dev", "--without-hashes", "-f", "requirements.txt", "-o", "docs/requirements.txt" ]
+      - id: sync_doc_requirements
+        name: sync_doc_requirements
+        entry: poetry export --with doc --without-hashes -o docs/requirements.txt -f requirements.txt
+        language: python
+        pass_filenames: false
+        files: 'poetry.lock'

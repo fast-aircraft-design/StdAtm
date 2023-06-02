@@ -30,18 +30,18 @@ exclude = ["**/tests/**"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-numpy = "^1.17.3"
-scipy = "^1.4.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest-profiling = "^1.7.0"
-snakeviz = "^2.1.1"
-pytest-benchmark = { version = "^3.4.1", extras = ["histogram"] }
+numpy = "^1.21.1"
+scipy = "^1.6.1"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.0, <7.2.0"
+pytest = "^7.0"
 pytest-cov = "^3.0"
 coverage = { version = "^6.0", extras = ["toml"] }
+
+[tool.poetry.group.benchmark.dependencies]
+pytest-profiling = "^1.7.0"
+snakeviz = "^2.1.1"
+pytest-benchmark = { version = "^4", extras = ["histogram"] }
 
 [tool.poetry.group.doc.dependencies]
 sphinx = "^4.1.2"
@@ -53,9 +53,14 @@ pre-commit = "^2.14.1"
 black = { version = "22.1.0" }
 flake8 = "^4.0.1"
 
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 100
