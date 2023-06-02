@@ -323,7 +323,6 @@ class Checker:
 
     @classmethod
     def check_speeds(cls, atm, tol=1e-4):
-
         assert_allclose(atm.true_airspeed, cls.expected_TAS, rtol=tol)
         assert_allclose(atm.equivalent_airspeed, cls.expected_EAS, rtol=tol)
         assert_allclose(atm.calibrated_airspeed, cls.expected_CAS, rtol=tol)
