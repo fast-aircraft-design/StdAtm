@@ -100,18 +100,11 @@ class Atmosphere:
 
         self.delta_t = delta_t
 
-        # Floats will be provided as output if altitude is a scalar
-        self._float_expected = isinstance(altitude, Number)
-
         # For convenience, let's have altitude as numpy arrays and in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
         if not isinstance(altitude, Number):
             altitude = np.asarray(altitude)
         self._altitude = altitude * unit_coeff
-
-        # Sets indices for tropopause
-        self._idx_tropo = self._altitude < TROPOPAUSE
-        self._idx_strato = self._altitude >= TROPOPAUSE
 
         # Outputs
         self._temperature = None
@@ -134,23 +127,14 @@ class Atmosphere:
         :return: altitude provided at instantiation
         """
         if altitude_in_feet:
-            return self._return_value(self._altitude / foot)
-        return self._return_value(self._altitude)
-
-    @property
-    def delta_t(self) -> float:
-        """Temperature increment applied to whole temperature profile."""
-        return self._delta_t
-
-    @delta_t.setter
-    def delta_t(self, value: float):
-        self._delta_t = value
+            return self._altitude / foot
+        return self._altitude
 
     @property
     def temperature(self) -> Union[float, np.ndarray]:
         """Temperature in K."""
         if self._temperature is None:
-            self._temperature = compute_temperature(self._altitude, self._delta_t)
+            self._temperature = compute_temperature(self._altitude, self.delta_t)
 
         return self._temperature
 
@@ -220,7 +204,7 @@ class Atmosphere:
                     "calibrated_airspeed", self._calibrated_airspeed
                 )
 
-        return self._return_value(self._true_airspeed)
+        return self._true_airspeed
 
     @property
     def equivalent_airspeed(self) -> Union[float, np.ndarray]:
@@ -230,14 +214,14 @@ class Atmosphere:
                 SEA_LEVEL_ATMOSPHERE.density / self.density
             )
 
-        return self._return_value(self._equivalent_airspeed)
+        return self._equivalent_airspeed
 
     @property
     def unitary_reynolds(self) -> Union[float, np.ndarray]:
         """Unitary Reynolds number in 1/m."""
         if self._unitary_reynolds is None and self.true_airspeed is not None:
             self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
-        return self._return_value(self._unitary_reynolds)
+        return self._unitary_reynolds
 
     @property
     def dynamic_pressure(self) -> Union[float, np.ndarray]:
@@ -249,7 +233,7 @@ class Atmosphere:
 
         if self.mach is not None:
             self._dynamic_pressure = 0.7 * self.mach**2 * self.pressure
-        return self._return_value(self._dynamic_pressure)
+        return self._dynamic_pressure
 
     @property
     def impact_pressure(self) -> Union[float, np.ndarray]:
@@ -281,7 +265,7 @@ class Atmosphere:
                 mach[idx_supersonic], pressure[idx_supersonic]
             )
             self._impact_pressure = value
-            return self._return_value(self._impact_pressure)
+            return self._impact_pressure
 
     @property
     def calibrated_airspeed(self) -> Union[float, np.ndarray]:
@@ -320,7 +304,7 @@ class Atmosphere:
                 cas[idx_high_speed] = _compute_cas_high_speed(impact_pressure[idx_high_speed])
 
             self._calibrated_airspeed = cas
-            return self._return_value(self._calibrated_airspeed)
+            return self._calibrated_airspeed
 
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
@@ -389,20 +373,6 @@ class Atmosphere:
         self._dynamic_pressure = None
         self._impact_pressure = None
         self._calibrated_airspeed = None
-
-    def _return_value(self, value):
-        """
-        :returns: a float when needed. Otherwise, returns the value itself.
-        """
-        if self._float_expected and value is not None:
-            try:
-                # It's faster to try... catch than to test np.size(value).
-                # (but float(value) is slow to fail if value is None, so
-                #  it is why we test it before)
-                return float(value)
-            except TypeError:
-                pass
-        return value
 
     def _compute_true_airspeed(self, parameter_name, value):
         """
