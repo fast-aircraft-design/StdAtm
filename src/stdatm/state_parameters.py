@@ -12,9 +12,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 from functools import lru_cache, singledispatch
 from numbers import Number
-from typing import Sequence, Union
+from typing import Union
 
 import numpy as np
 from scipy.constants import R, atmosphere
@@ -28,7 +29,7 @@ TROPOPAUSE = 11000.0
 
 # TEMPERATURE =================================================================
 @singledispatch
-def compute_temperature(altitude: Sequence[float], delta_t: Number) -> np.ndarray:
+def compute_temperature(altitude, delta_t) -> np.ndarray:
     """
 
     :param altitude: in m
@@ -36,7 +37,6 @@ def compute_temperature(altitude: Sequence[float], delta_t: Number) -> np.ndarra
     :return: Temperature in K
     """
     # Implementation for numpy arrays
-    altitude = np.asarray(altitude)
     idx_tropo = altitude < TROPOPAUSE
     idx_strato = np.logical_not(idx_tropo)
 
@@ -60,14 +60,13 @@ def _(altitude: Number, delta_t: Number) -> float:
 
 # PRESSURE =================================================================
 @singledispatch
-def compute_pressure(altitude: Sequence[float]) -> np.ndarray:
+def compute_pressure(altitude) -> np.ndarray:
     """
 
     :param altitude: in m
     :return: pressure in Pa
     """
     # Implementation for numpy arrays
-    altitude = np.asarray(altitude)
     idx_tropo = altitude < TROPOPAUSE
     idx_strato = np.logical_not(idx_tropo)
 
@@ -100,6 +99,17 @@ def compute_density(
     :return: air density in kg/m**3
     """
     density = pressure / AIR_GAS_CONSTANT / temperature
+    return density
+
+
+# SPEED OF SOUND =================================================
+def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+    """
+
+    :param temperature: in K
+    :return: in m/s
+    """
+    density = (1.4 * AIR_GAS_CONSTANT * temperature) ** 0.5
     return density
 
 

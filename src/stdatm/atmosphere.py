@@ -26,6 +26,7 @@ from stdatm.state_parameters import (
     compute_density,
     compute_kinematic_viscosity,
     compute_pressure,
+    compute_speed_of_sound,
     compute_temperature,
 )
 
@@ -163,7 +164,7 @@ class Atmosphere:
     def speed_of_sound(self) -> Union[float, np.ndarray]:
         """Speed of sound in m/s."""
         if self._speed_of_sound is None:
-            self._speed_of_sound = (1.4 * AIR_GAS_CONSTANT * self.temperature) ** 0.5
+            self._speed_of_sound = compute_speed_of_sound(self.temperature)
         return self._speed_of_sound
 
     @property
