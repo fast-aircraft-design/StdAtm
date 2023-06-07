@@ -2,7 +2,7 @@
 Simple implementation of International Standard Atmosphere.
 """
 #  This file is part of StdAtm
-#  Copyright (C) 2022 ONERA & ISAE-SUPAERO
+#  Copyright (C) 2023 ONERA & ISAE-SUPAERO
 #  StdAtm is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
@@ -207,9 +207,8 @@ class Atmosphere:
             if self._mach is not None:
                 self._true_airspeed = self._mach * self.speed_of_sound
             elif self._equivalent_airspeed is not None:
-                sea_level = Atmosphere(0)
                 self._true_airspeed = self._equivalent_airspeed * np.sqrt(
-                    sea_level.density / self.density
+                    SEA_LEVEL_ATMOSPHERE.density / self.density
                 )
             elif self._unitary_reynolds is not None:
                 self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
@@ -232,9 +231,8 @@ class Atmosphere:
     def equivalent_airspeed(self) -> Union[float, Sequence[float]]:
         """Equivalent airspeed (EAS) in m/s."""
         if self._equivalent_airspeed is None and self.true_airspeed is not None:
-            sea_level = Atmosphere(0)
             self._equivalent_airspeed = self.true_airspeed / np.sqrt(
-                sea_level.density / self.density
+                SEA_LEVEL_ATMOSPHERE.density / self.density
             )
 
         return self._return_value(self._equivalent_airspeed)
@@ -298,36 +296,33 @@ class Atmosphere:
         #         NASA Reference Publication 1046.
         #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
 
-        def _compute_cas_low_speed(impact_pressure, sea_level):
-            return sea_level.speed_of_sound * np.sqrt(
-                5 * ((impact_pressure / sea_level.pressure + 1) ** (1 / 3.5) - 1)
+        def _compute_cas_low_speed(impact_pressure):
+            return SEA_LEVEL_ATMOSPHERE.speed_of_sound * np.sqrt(
+                5 * ((impact_pressure / SEA_LEVEL_ATMOSPHERE.pressure + 1) ** (1 / 3.5) - 1)
             )
 
-        def _compute_cas_high_speed(impact_pressure, sea_level):
+        def _compute_cas_high_speed(impact_pressure):
             root = fsolve(
                 _equation_cas_high_speed,
-                x0=sea_level.speed_of_sound * np.ones_like(impact_pressure),
-                args=(impact_pressure, sea_level),
+                x0=SEA_LEVEL_ATMOSPHERE.speed_of_sound * np.ones_like(impact_pressure),
+                args=(impact_pressure,),
             )
             return root
 
-        def _equation_cas_high_speed(cas, impact_pressure, sea_level):
-            return cas - sea_level.speed_of_sound * (
-                (impact_pressure / sea_level.pressure + 1)
-                * (7 * (cas / sea_level.speed_of_sound) ** 2 - 1) ** 2.5
+        def _equation_cas_high_speed(cas, impact_pressure):
+            return cas - SEA_LEVEL_ATMOSPHERE.speed_of_sound * (
+                (impact_pressure / SEA_LEVEL_ATMOSPHERE.pressure + 1)
+                * (7 * (cas / SEA_LEVEL_ATMOSPHERE.speed_of_sound) ** 2 - 1) ** 2.5
                 / (6**2.5 * 1.2**3.5)
             ) ** (1 / 7)
 
         if self.impact_pressure is not None:
-            sea_level = Atmosphere(0)
             impact_pressure = np.asarray(self.impact_pressure)
 
-            cas = np.asarray(_compute_cas_low_speed(impact_pressure, sea_level))
-            idx_high_speed = cas > sea_level.speed_of_sound
+            cas = np.asarray(_compute_cas_low_speed(impact_pressure))
+            idx_high_speed = cas > SEA_LEVEL_ATMOSPHERE.speed_of_sound
             if np.any(idx_high_speed):
-                cas[idx_high_speed] = _compute_cas_high_speed(
-                    impact_pressure[idx_high_speed], sea_level
-                )
+                cas[idx_high_speed] = _compute_cas_high_speed(impact_pressure[idx_high_speed])
 
             self._calibrated_airspeed = cas
             return self._return_value(self._calibrated_airspeed)
@@ -456,3 +451,6 @@ class AtmosphereSI(Atmosphere):
     def altitude(self):
         """Altitude in meters."""
         return self.get_altitude(altitude_in_feet=False)
+
+
+SEA_LEVEL_ATMOSPHERE = Atmosphere(0.0)
