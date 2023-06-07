@@ -101,3 +101,14 @@ def compute_density(
     """
     density = pressure / AIR_GAS_CONSTANT / temperature
     return density
+
+
+# KINEMATIC VISCOSITY =================================================
+def compute_kinematic_viscosity(
+    temperature: Union[np.ndarray, Number], density: Union[np.ndarray, Number]
+) -> Union[np.ndarray, Number]:
+    kinematic_viscosity = (
+        (0.000017894 * (temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
+        * ((SEA_LEVEL_TEMPERATURE + 110.4) / (temperature + 110.4))
+    ) / density
+    return kinematic_viscosity

@@ -24,6 +24,7 @@ from scipy.optimize import fsolve
 
 from stdatm.state_parameters import (
     compute_density,
+    compute_kinematic_viscosity,
     compute_pressure,
     compute_temperature,
 )
@@ -169,10 +170,7 @@ class Atmosphere:
     def kinematic_viscosity(self) -> Union[float, np.ndarray]:
         """Kinematic viscosity in m2/s."""
         if self._kinematic_viscosity is None:
-            self._kinematic_viscosity = (
-                (0.000017894 * (self.temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
-                * ((SEA_LEVEL_TEMPERATURE + 110.4) / (self.temperature + 110.4))
-            ) / self.density
+            self._kinematic_viscosity = compute_kinematic_viscosity(self.temperature, self.density)
         return self._kinematic_viscosity
 
     @property
