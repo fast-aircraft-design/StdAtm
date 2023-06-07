@@ -13,6 +13,7 @@ Simple implementation of International Standard Atmosphere.
 #  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from copy import deepcopy
 from numbers import Number
 from typing import Sequence, Union
@@ -21,7 +22,11 @@ import numpy as np
 from scipy.constants import R, atmosphere, foot
 from scipy.optimize import fsolve
 
-from stdatm.state_parameters import compute_pressure, compute_temperature
+from stdatm.state_parameters import (
+    compute_density,
+    compute_pressure,
+    compute_temperature,
+)
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -150,7 +155,7 @@ class Atmosphere:
     def density(self) -> Union[float, np.ndarray]:
         """Density in kg/m3."""
         if self._density is None:
-            self._density = self.pressure / AIR_GAS_CONSTANT / self.temperature
+            self._density = compute_density(self.pressure, self.temperature)
         return self._density
 
     @property

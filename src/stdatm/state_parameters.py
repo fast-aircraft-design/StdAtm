@@ -14,7 +14,7 @@
 
 from functools import lru_cache, singledispatch
 from numbers import Number
-from typing import Sequence
+from typing import Sequence, Union
 
 import numpy as np
 from scipy.constants import R, atmosphere
@@ -87,3 +87,17 @@ def _(altitude: Number) -> float:
     else:
         pressure = 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
     return pressure
+
+
+# DENSITY =================================================================
+def compute_density(
+    pressure: Union[np.ndarray, Number], temperature: Union[np.ndarray, Number]
+) -> Union[np.ndarray, Number]:
+    """
+
+    :param pressure: in Pa
+    :param temperature: in K
+    :return: air density in kg/m**3
+    """
+    density = pressure / AIR_GAS_CONSTANT / temperature
+    return density
