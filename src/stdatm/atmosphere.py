@@ -21,6 +21,8 @@ import numpy as np
 from scipy.constants import R, atmosphere, foot
 from scipy.optimize import fsolve
 
+from stdatm.state_parameters import compute_pressure, compute_temperature
+
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
 SEA_LEVEL_PRESSURE = atmosphere
@@ -51,7 +53,7 @@ class Atmosphere:
 
 
         >>> atm = Atmosphere([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
-        >>> atm.pressure # pressures for all defined altitudes
+        >>> atm.compute_pressure # pressures for all defined altitudes
         array([101325.        ,  69681.66657158,  30089.59825871])
         >>> atm.kinematic_viscosity # viscosities for all defined altitudes
         array([1.46074563e-05, 1.87057660e-05, 3.24486943e-05])
@@ -103,7 +105,9 @@ class Atmosphere:
 
         # For convenience, let's have altitude as numpy arrays and in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
-        self._altitude = np.asarray(altitude) * unit_coeff
+        if not isinstance(altitude, Number):
+            altitude = np.asarray(altitude)
+        self._altitude = altitude * unit_coeff
 
         # Sets indices for tropopause
         self._idx_tropo = self._altitude < TROPOPAUSE
@@ -134,72 +138,63 @@ class Atmosphere:
         return self._return_value(self._altitude)
 
     @property
-    def delta_t(self) -> Union[float, Sequence[float]]:
+    def delta_t(self) -> float:
         """Temperature increment applied to whole temperature profile."""
         return self._delta_t
 
     @delta_t.setter
-    def delta_t(self, value: Union[float, Sequence[float]]):
-        self._delta_t = np.asarray(value)
+    def delta_t(self, value: float):
+        self._delta_t = value
 
     @property
-    def temperature(self) -> Union[float, Sequence[float]]:
+    def temperature(self) -> Union[float, np.ndarray]:
         """Temperature in K."""
         if self._temperature is None:
-            self._temperature = np.zeros(self._altitude.shape)
-            self._temperature[self._idx_tropo] = (
-                SEA_LEVEL_TEMPERATURE - 0.0065 * self._altitude[self._idx_tropo] + self._delta_t
-            )
-            self._temperature[self._idx_strato] = 216.65 + self._delta_t
-        return self._return_value(self._temperature)
+            self._temperature = compute_temperature(self._altitude, self._delta_t)
+
+        return self._temperature
 
     @property
-    def pressure(self) -> Union[float, Sequence[float]]:
+    def pressure(self) -> Union[float, np.ndarray]:
         """Pressure in Pa."""
         if self._pressure is None:
-            self._pressure = np.zeros(self._altitude.shape)
-            self._pressure[self._idx_tropo] = (
-                SEA_LEVEL_PRESSURE
-                * (1 - (self._altitude[self._idx_tropo] / 44330.78)) ** 5.25587611
-            )
-            self._pressure[self._idx_strato] = 22632 * 2.718281 ** (
-                1.7345725 - 0.0001576883 * self._altitude[self._idx_strato]
-            )
-        return self._return_value(self._pressure)
+            self._pressure = compute_pressure(self._altitude)
+
+        return self._pressure
 
     @property
-    def density(self) -> Union[float, Sequence[float]]:
+    def density(self) -> Union[float, np.ndarray]:
         """Density in kg/m3."""
         if self._density is None:
             self._density = self.pressure / AIR_GAS_CONSTANT / self.temperature
-        return self._return_value(self._density)
+        return self._density
 
     @property
-    def speed_of_sound(self) -> Union[float, Sequence[float]]:
+    def speed_of_sound(self) -> Union[float, np.ndarray]:
         """Speed of sound in m/s."""
         if self._speed_of_sound is None:
             self._speed_of_sound = (1.4 * AIR_GAS_CONSTANT * self.temperature) ** 0.5
-        return self._return_value(self._speed_of_sound)
+        return self._speed_of_sound
 
     @property
-    def kinematic_viscosity(self) -> Union[float, Sequence[float]]:
+    def kinematic_viscosity(self) -> Union[float, np.ndarray]:
         """Kinematic viscosity in m2/s."""
         if self._kinematic_viscosity is None:
             self._kinematic_viscosity = (
                 (0.000017894 * (self.temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
                 * ((SEA_LEVEL_TEMPERATURE + 110.4) / (self.temperature + 110.4))
             ) / self.density
-        return self._return_value(self._kinematic_viscosity)
+        return self._kinematic_viscosity
 
     @property
-    def mach(self) -> Union[float, Sequence[float]]:
+    def mach(self) -> Union[float, np.ndarray]:
         """Mach number."""
         if self._mach is None and self.true_airspeed is not None:
             self._mach = self.true_airspeed / self.speed_of_sound
-        return self._return_value(self._mach)
+        return self._mach
 
     @property
-    def true_airspeed(self) -> Union[float, Sequence[float]]:
+    def true_airspeed(self) -> Union[float, np.ndarray]:
         """True airspeed (TAS) in m/s."""
         # Dev note: true_airspeed is the "hub". Other speed values will be calculated
         # from this true_airspeed.
@@ -228,7 +223,7 @@ class Atmosphere:
         return self._return_value(self._true_airspeed)
 
     @property
-    def equivalent_airspeed(self) -> Union[float, Sequence[float]]:
+    def equivalent_airspeed(self) -> Union[float, np.ndarray]:
         """Equivalent airspeed (EAS) in m/s."""
         if self._equivalent_airspeed is None and self.true_airspeed is not None:
             self._equivalent_airspeed = self.true_airspeed / np.sqrt(
@@ -238,14 +233,14 @@ class Atmosphere:
         return self._return_value(self._equivalent_airspeed)
 
     @property
-    def unitary_reynolds(self) -> Union[float, Sequence[float]]:
+    def unitary_reynolds(self) -> Union[float, np.ndarray]:
         """Unitary Reynolds number in 1/m."""
         if self._unitary_reynolds is None and self.true_airspeed is not None:
             self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
         return self._return_value(self._unitary_reynolds)
 
     @property
-    def dynamic_pressure(self) -> Union[float, Sequence[float]]:
+    def dynamic_pressure(self) -> Union[float, np.ndarray]:
         """
         Theoretical (true) dynamic pressure in Pa.
 
@@ -257,7 +252,7 @@ class Atmosphere:
         return self._return_value(self._dynamic_pressure)
 
     @property
-    def impact_pressure(self) -> Union[float, Sequence[float]]:
+    def impact_pressure(self) -> Union[float, np.ndarray]:
         """Compressible dynamic pressure in Pa."""
 
         def _compute_subsonic_impact_pressure(mach, p):
@@ -289,7 +284,7 @@ class Atmosphere:
             return self._return_value(self._impact_pressure)
 
     @property
-    def calibrated_airspeed(self):
+    def calibrated_airspeed(self) -> Union[float, np.ndarray]:
         """Calibrated airspeed in m/s."""
         #         Computation is done using Eq. 3.16 and 3.17 from:
         #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
