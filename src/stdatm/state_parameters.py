@@ -48,7 +48,7 @@ def compute_temperature(altitude, delta_t) -> np.ndarray:
 
 
 @compute_temperature.register
-@lru_cache
+@lru_cache()
 def _(altitude: Number, delta_t: Number) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
@@ -78,7 +78,7 @@ def compute_pressure(altitude) -> np.ndarray:
 
 
 @compute_pressure.register
-@lru_cache
+@lru_cache()
 def _(altitude: Number) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
