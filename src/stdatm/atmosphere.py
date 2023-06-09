@@ -24,6 +24,7 @@ from scipy.optimize import fsolve
 
 from stdatm.state_parameters import (
     compute_density,
+    compute_dynamic_viscosity,
     compute_kinematic_viscosity,
     compute_pressure,
     compute_speed_of_sound,
@@ -118,6 +119,7 @@ class Atmosphere:
         self._pressure = None
         self._density = None
         self._speed_of_sound = None
+        self._dynamic_viscosity = None
         self._kinematic_viscosity = None
         self._mach = None
         self._equivalent_airspeed = None
@@ -168,10 +170,19 @@ class Atmosphere:
         return self._speed_of_sound
 
     @property
+    def dynamic_viscosity(self) -> Union[float, np.ndarray]:
+        """Dynamic viscosity in m2/s."""
+        if self._dynamic_viscosity is None:
+            self._dynamic_viscosity = compute_dynamic_viscosity(self.temperature)
+        return self._dynamic_viscosity
+
+    @property
     def kinematic_viscosity(self) -> Union[float, np.ndarray]:
         """Kinematic viscosity in m2/s."""
         if self._kinematic_viscosity is None:
-            self._kinematic_viscosity = compute_kinematic_viscosity(self.temperature, self.density)
+            self._kinematic_viscosity = compute_kinematic_viscosity(
+                self.dynamic_viscosity, self.density
+            )
         return self._kinematic_viscosity
 
     @property

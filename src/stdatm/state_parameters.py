@@ -109,16 +109,32 @@ def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.n
     :param temperature: in K
     :return: in m/s
     """
-    density = (1.4 * AIR_GAS_CONSTANT * temperature) ** 0.5
-    return density
+    speed_of_sound = (1.4 * AIR_GAS_CONSTANT * temperature) ** 0.5
+    return speed_of_sound
+
+
+def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+    """
+
+    :param temperature: in K
+    :return: in kg/m/s
+    """
+    dynamic_viscosity = (0.000017894 * (temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2)) * (
+        (SEA_LEVEL_TEMPERATURE + 110.4) / (temperature + 110.4)
+    )
+
+    return dynamic_viscosity
 
 
 # KINEMATIC VISCOSITY =================================================
 def compute_kinematic_viscosity(
-    temperature: Union[np.ndarray, Number], density: Union[np.ndarray, Number]
+    dynamic_viscosity: Union[np.ndarray, Number], density: Union[np.ndarray, Number]
 ) -> Union[np.ndarray, Number]:
-    kinematic_viscosity = (
-        (0.000017894 * (temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2))
-        * ((SEA_LEVEL_TEMPERATURE + 110.4) / (temperature + 110.4))
-    ) / density
+    """
+
+    :param dynamic_viscosity: in kg/m/s
+    :param density: in kg/m**3
+    :return: in m**2/s
+    """
+    kinematic_viscosity = dynamic_viscosity / density
     return kinematic_viscosity
