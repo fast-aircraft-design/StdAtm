@@ -22,6 +22,7 @@ import numpy as np
 from scipy.constants import R, atmosphere, foot
 from scipy.optimize import fsolve
 
+from stdatm.speed_parameters import compute_tas_from_eas, compute_tas_from_pdyn
 from stdatm.state_parameters import (
     compute_density,
     compute_dynamic_viscosity,
@@ -214,14 +215,14 @@ class Atmosphere:
             if self._mach is not None:
                 self._true_airspeed = self._mach * self.speed_of_sound
             elif self._equivalent_airspeed is not None:
-                self._true_airspeed = self._equivalent_airspeed * np.sqrt(
-                    SEA_LEVEL_ATMOSPHERE.density / self.density
+                self._true_airspeed = compute_tas_from_eas(
+                    self._equivalent_airspeed, self.density, SEA_LEVEL_ATMOSPHERE.density
                 )
             elif self._unitary_reynolds is not None:
                 self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
             elif self._dynamic_pressure is not None:
-                self._true_airspeed = (
-                    np.sqrt(self._dynamic_pressure / 0.7 / self.pressure) * self.speed_of_sound
+                self._true_airspeed = compute_tas_from_pdyn(
+                    self._dynamic_pressure, self.pressure, self.speed_of_sound
                 )
             elif self._impact_pressure is not None:
                 self._true_airspeed = self._compute_true_airspeed(
