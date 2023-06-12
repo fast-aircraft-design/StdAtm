@@ -493,6 +493,20 @@ def test_performances_loop_speeds_init_TAS(altitude, benchmark):
     benchmark(func)
 
 
+def test_performances_loop_speeds_init_EAS(altitude, benchmark):
+    def func():
+        for alt in altitude[::1000]:
+            atm = AtmosphereSI(alt)
+            atm.equivalent_airspeed = 100.0
+            _ = atm.true_airspeed
+            _ = atm.equivalent_airspeed
+            _ = atm.mach
+            _ = atm.unitary_reynolds
+            _ = atm.dynamic_pressure
+
+    benchmark(func)
+
+
 def test_performances_loop_speeds_init_mach(altitude, benchmark):
     def func():
         for alt in altitude[::1000]:
