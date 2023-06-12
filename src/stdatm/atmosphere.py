@@ -147,7 +147,10 @@ class Atmosphere:
     @delta_t.setter
     def delta_t(self, value: float):
         # Let's ensure it is not a one-element array that would crash lru_cache
-        self._delta_t = float(value)
+        if isinstance(value, Number):
+            self._delta_t = value
+        else:
+            self._delta_t = np.asarray(value).item()
 
     @property
     def temperature(self) -> Union[float, np.ndarray]:
