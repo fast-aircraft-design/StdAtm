@@ -140,6 +140,16 @@ class Atmosphere:
         return self._altitude
 
     @property
+    def delta_t(self) -> float:
+        """Temperature increment applied to whole temperature profile."""
+        return self._delta_t
+
+    @delta_t.setter
+    def delta_t(self, value: float):
+        # Let's ensure it is not a one-element array that would crash lru_cache
+        self._delta_t = float(value)
+
+    @property
     def temperature(self) -> Union[float, np.ndarray]:
         """Temperature in K."""
         if self._temperature is None:
