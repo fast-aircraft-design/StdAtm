@@ -22,7 +22,18 @@ import numpy as np
 from scipy.constants import R, atmosphere, foot
 from scipy.optimize import fsolve
 
-from stdatm.speed_parameters import compute_tas_from_eas, compute_tas_from_pdyn
+from stdatm.speed_parameters import (
+    compute_tas_from_eas,
+    compute_tas_from_mach,
+    compute_tas_from_unit_re,
+    compute_equivalent_airspeed,
+    compute_unitary_reynolds,
+    compute_dynamic_pressure,
+    compute_mach,
+    compute_mach_from_pdyn,
+    compute_impact_pressure,
+    compute_calibrated_airspeed,
+)
 from stdatm.state_parameters import (
     compute_density,
     compute_dynamic_viscosity,
@@ -200,30 +211,24 @@ class Atmosphere:
         return self._kinematic_viscosity
 
     @property
-    def mach(self) -> Union[float, np.ndarray]:
-        """Mach number."""
-        if self._mach is None and self.true_airspeed is not None:
-            self._mach = self.true_airspeed / self.speed_of_sound
-        return self._mach
-
-    @property
     def true_airspeed(self) -> Union[float, np.ndarray]:
         """True airspeed (TAS) in m/s."""
         # Dev note: true_airspeed is the "hub". Other speed values will be calculated
         # from this true_airspeed.
         if self._true_airspeed is None:
             if self._mach is not None:
-                self._true_airspeed = self._mach * self.speed_of_sound
+                self._true_airspeed = compute_tas_from_mach(self._mach, self.speed_of_sound)
             elif self._equivalent_airspeed is not None:
                 self._true_airspeed = compute_tas_from_eas(
                     self._equivalent_airspeed, self.density, SEA_LEVEL_ATMOSPHERE.density
                 )
             elif self._unitary_reynolds is not None:
-                self._true_airspeed = self._unitary_reynolds * self.kinematic_viscosity
-            elif self._dynamic_pressure is not None:
-                self._true_airspeed = compute_tas_from_pdyn(
-                    self._dynamic_pressure, self.pressure, self.speed_of_sound
+                self._true_airspeed = compute_tas_from_unit_re(
+                    self._unitary_reynolds, self.kinematic_viscosity
                 )
+            elif self._dynamic_pressure is not None:
+                self._mach = compute_mach_from_pdyn(self._dynamic_pressure, self.pressure)
+                self._true_airspeed = compute_tas_from_mach(self._mach, self.speed_of_sound)
             elif self._impact_pressure is not None:
                 self._true_airspeed = self._compute_true_airspeed(
                     "impact_pressure", self._impact_pressure
@@ -236,20 +241,28 @@ class Atmosphere:
         return self._true_airspeed
 
     @property
+    def mach(self) -> Union[float, np.ndarray]:
+        """Mach number."""
+        if self._mach is None and self.true_airspeed is not None:
+            self._mach = compute_mach(self.true_airspeed, self.speed_of_sound)
+        return self._mach
+
+    @property
     def equivalent_airspeed(self) -> Union[float, np.ndarray]:
         """Equivalent airspeed (EAS) in m/s."""
         if self._equivalent_airspeed is None and self.true_airspeed is not None:
-            self._equivalent_airspeed = self.true_airspeed / np.sqrt(
-                SEA_LEVEL_ATMOSPHERE.density / self.density
+            self._equivalent_airspeed = compute_equivalent_airspeed(
+                self.true_airspeed, self.density, SEA_LEVEL_ATMOSPHERE.density
             )
-
         return self._equivalent_airspeed
 
     @property
     def unitary_reynolds(self) -> Union[float, np.ndarray]:
         """Unitary Reynolds number in 1/m."""
         if self._unitary_reynolds is None and self.true_airspeed is not None:
-            self._unitary_reynolds = self.true_airspeed / self.kinematic_viscosity
+            self._unitary_reynolds = compute_unitary_reynolds(
+                self.true_airspeed, self.kinematic_viscosity
+            )
         return self._unitary_reynolds
 
     @property
@@ -259,81 +272,27 @@ class Atmosphere:
 
         It is given by q = 0.5 * mach**2 * gamma * static_pressure.
         """
-
         if self.mach is not None:
-            self._dynamic_pressure = 0.7 * self.mach**2 * self.pressure
+            self._dynamic_pressure = compute_dynamic_pressure(self.mach, self.pressure)
         return self._dynamic_pressure
 
     @property
     def impact_pressure(self) -> Union[float, np.ndarray]:
-        """Compressible dynamic pressure in Pa."""
-
-        def _compute_subsonic_impact_pressure(mach, p):
-            return p * ((1 + 0.2 * mach**2) ** 3.5 - 1)
-
-        def _compute_supersonic_impact_pressure(mach, p):
-            # Rayleigh law
-            # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
-            return p * (166.92158 * mach**7 / (7 * mach**2 - 1) ** 2.5 - 1)
-
+        """Compressible dynamic pressure (AKA impact pressure) in Pa."""
         if self.mach is not None:
-            mach = np.asarray(self.mach)
-            idx_subsonic = mach <= 1.0
-            idx_supersonic = mach > 1
-
-            if np.shape(self.pressure) != np.shape(mach):
-                pressure = np.broadcast_to(self.pressure, np.shape(mach))
-            else:
-                pressure = np.asarray(self.pressure)
-
-            value = np.empty_like(mach)
-            value[idx_subsonic] = _compute_subsonic_impact_pressure(
-                mach[idx_subsonic], pressure[idx_subsonic]
-            )
-            value[idx_supersonic] = _compute_supersonic_impact_pressure(
-                mach[idx_supersonic], pressure[idx_supersonic]
-            )
-            self._impact_pressure = value
-            return self._impact_pressure
+            self._impact_pressure = compute_impact_pressure(self.mach, self.pressure)
+        return self._impact_pressure
 
     @property
     def calibrated_airspeed(self) -> Union[float, np.ndarray]:
         """Calibrated airspeed in m/s."""
-        #         Computation is done using Eq. 3.16 and 3.17 from:
-        #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
-        #         NASA Reference Publication 1046.
-        #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
-
-        def _compute_cas_low_speed(impact_pressure):
-            return SEA_LEVEL_ATMOSPHERE.speed_of_sound * np.sqrt(
-                5 * ((impact_pressure / SEA_LEVEL_ATMOSPHERE.pressure + 1) ** (1 / 3.5) - 1)
-            )
-
-        def _compute_cas_high_speed(impact_pressure):
-            root = fsolve(
-                _equation_cas_high_speed,
-                x0=SEA_LEVEL_ATMOSPHERE.speed_of_sound * np.ones_like(impact_pressure),
-                args=(impact_pressure,),
-            )
-            return root
-
-        def _equation_cas_high_speed(cas, impact_pressure):
-            return cas - SEA_LEVEL_ATMOSPHERE.speed_of_sound * (
-                (impact_pressure / SEA_LEVEL_ATMOSPHERE.pressure + 1)
-                * (7 * (cas / SEA_LEVEL_ATMOSPHERE.speed_of_sound) ** 2 - 1) ** 2.5
-                / (6**2.5 * 1.2**3.5)
-            ) ** (1 / 7)
-
         if self.impact_pressure is not None:
-            impact_pressure = np.asarray(self.impact_pressure)
-
-            cas = np.asarray(_compute_cas_low_speed(impact_pressure))
-            idx_high_speed = cas > SEA_LEVEL_ATMOSPHERE.speed_of_sound
-            if np.any(idx_high_speed):
-                cas[idx_high_speed] = _compute_cas_high_speed(impact_pressure[idx_high_speed])
-
-            self._calibrated_airspeed = cas
-            return self._calibrated_airspeed
+            self._calibrated_airspeed = compute_calibrated_airspeed(
+                self.impact_pressure,
+                SEA_LEVEL_ATMOSPHERE.pressure,
+                SEA_LEVEL_ATMOSPHERE.speed_of_sound,
+            )
+        return self._calibrated_airspeed
 
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
