@@ -337,59 +337,50 @@ class Atmosphere:
 
     @mach.setter
     def mach(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._mach = self._adapt_shape(value)
+        self._mach = self._process_speed_value(value)
 
     @true_airspeed.setter
     def true_airspeed(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._true_airspeed = self._adapt_shape(value)
+        self._true_airspeed = self._process_speed_value(value)
 
     @equivalent_airspeed.setter
     def equivalent_airspeed(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._equivalent_airspeed = self._adapt_shape(value)
+        self._equivalent_airspeed = self._process_speed_value(value)
 
     @unitary_reynolds.setter
     def unitary_reynolds(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._unitary_reynolds = self._adapt_shape(value)
+        self._unitary_reynolds = self._process_speed_value(value)
 
     @dynamic_pressure.setter
     def dynamic_pressure(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._dynamic_pressure = self._adapt_shape(value)
+        self._dynamic_pressure = self._process_speed_value(value)
 
     @impact_pressure.setter
     def impact_pressure(self, value: Union[float, Sequence[float]]):
-        self._reset_speeds()
-        if value is not None:
-            self._impact_pressure = self._adapt_shape(value)
+        self._impact_pressure = self._process_speed_value(value)
 
     @calibrated_airspeed.setter
     def calibrated_airspeed(self, value: Union[float, Sequence[float]]):
+        self._calibrated_airspeed = self._process_speed_value(value)
+
+    def _process_speed_value(self, value):
         self._reset_speeds()
-        if value is not None:
-            self._calibrated_airspeed = self._adapt_shape(value)
+        return self._adapt_shape(value)
 
     def _adapt_shape(self, value):
-        value = np.asarray(value)
-        if np.size(value) > 1:
-            try:
-                expected_shape = np.shape(value + self.get_altitude())
-            except ValueError as exc:
-                raise RuntimeError(
-                    "Shape of provided value is not "
-                    f"compatible with shape of altitude {np.shape(self.get_altitude())}."
-                ) from exc
+        if value is not None:
+            value = np.asarray(value)
+            if np.size(value) > 1:
+                try:
+                    expected_shape = np.shape(value + self.get_altitude())
+                except ValueError as exc:
+                    raise RuntimeError(
+                        "Shape of provided value is not "
+                        f"compatible with shape of altitude {np.shape(self.get_altitude())}."
+                    ) from exc
 
-            if value.shape != expected_shape:
-                value = np.broadcast_to(value, expected_shape)
+                if value.shape != expected_shape:
+                    value = np.broadcast_to(value, expected_shape)
 
         return value
 
