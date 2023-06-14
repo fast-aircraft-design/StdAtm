@@ -195,8 +195,6 @@ def _(mach: Number, pressure: Number):
 
 
 # CALIBRATED AIRSPEED =================================================================
-
-
 #         Computation is done using Eq. 3.16 and 3.17 from:
 #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
 #         NASA Reference Publication 1046.
@@ -209,23 +207,33 @@ def _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_
     )
 
 
-def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
-    def _equation_cas_high_speed(cas, impact_pressure):
-        return cas - sea_level_speed_of_sound * (
-            (impact_pressure / sea_level_pressure + 1)
-            * (7 * (cas / sea_level_speed_of_sound) ** 2 - 1) ** 2.5
-            / (6**2.5 * 1.2**3.5)
-        ) ** (1 / 7)
+def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+    return cas - sea_level_speed_of_sound * (
+        (impact_pressure / sea_level_pressure + 1)
+        * (7.0 * (cas / sea_level_speed_of_sound) ** 2 - 1.0) ** 2.5
+        / (6**2.5 * 1.2**3.5)
+    ) ** (1.0 / 7.0)
 
+
+def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
     root = fsolve(
         _equation_cas_high_speed,
         x0=sea_level_speed_of_sound * np.ones_like(impact_pressure),
-        args=(impact_pressure,),
+        args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
     )
     return root
 
 
+@singledispatch
 def compute_calibrated_airspeed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+    """
+
+    :param impact_pressure: in Pa
+    :param sea_level_pressure: in Pa
+    :param sea_level_speed_of_sound: in m/s
+    :return: calibrated airspeed in m/s
+    """
+    # Implementation for numpy arrays
     impact_pressure = np.asarray(impact_pressure)
 
     calibrated_airspeed = np.asarray(
@@ -236,6 +244,21 @@ def compute_calibrated_airspeed(impact_pressure, sea_level_pressure, sea_level_s
     if np.any(idx_high_speed):
         calibrated_airspeed[idx_high_speed] = _compute_cas_high_speed(
             impact_pressure[idx_high_speed], sea_level_pressure, sea_level_speed_of_sound
+        )
+
+    return calibrated_airspeed
+
+
+@compute_calibrated_airspeed.register
+def _(impact_pressure: Number, sea_level_pressure: Number, sea_level_speed_of_sound: Number):
+    # Implementation for floats
+    calibrated_airspeed = _compute_cas_low_speed(
+        impact_pressure, sea_level_pressure, sea_level_speed_of_sound
+    )
+
+    if calibrated_airspeed > sea_level_speed_of_sound:
+        calibrated_airspeed = _compute_cas_high_speed(
+            impact_pressure, sea_level_pressure, sea_level_speed_of_sound
         )
 
     return calibrated_airspeed
