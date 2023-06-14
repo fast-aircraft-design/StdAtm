@@ -19,20 +19,20 @@ from numbers import Number
 from typing import Sequence, Union
 
 import numpy as np
-from scipy.constants import R, atmosphere, foot
+from scipy.constants import foot
 from scipy.optimize import fsolve
 
 from stdatm.speed_parameters import (
+    compute_calibrated_airspeed,
+    compute_dynamic_pressure,
+    compute_equivalent_airspeed,
+    compute_impact_pressure,
+    compute_mach,
+    compute_mach_from_pdyn,
     compute_tas_from_eas,
     compute_tas_from_mach,
     compute_tas_from_unit_re,
-    compute_equivalent_airspeed,
     compute_unitary_reynolds,
-    compute_dynamic_pressure,
-    compute_mach,
-    compute_mach_from_pdyn,
-    compute_impact_pressure,
-    compute_calibrated_airspeed,
 )
 from stdatm.state_parameters import (
     compute_density,
@@ -42,12 +42,6 @@ from stdatm.state_parameters import (
     compute_speed_of_sound,
     compute_temperature,
 )
-
-AIR_MOLAR_MASS = 28.9647e-3
-AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
-SEA_LEVEL_PRESSURE = atmosphere
-SEA_LEVEL_TEMPERATURE = 288.15
-TROPOPAUSE = 11000
 
 
 class Atmosphere:

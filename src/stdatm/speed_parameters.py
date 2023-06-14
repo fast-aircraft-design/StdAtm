@@ -200,19 +200,29 @@ def _(mach: Number, pressure: Number):
 #         NASA Reference Publication 1046.
 #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
 
+# Pre-calculation of some equation constants for sake of speed.
+GAMMA_MINUS_ONE_OVER_GAMMA = (1.4 - 1.0) / 1.4
+GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (1.4 - 1.0) / 2.8
+COEFF_1 = 6.0**2.5 * 1.2**3.5
+
 
 def _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
     return sea_level_speed_of_sound * np.sqrt(
-        5.0 * ((impact_pressure / sea_level_pressure + 1.0) ** (1.0 / 3.5) - 1.0)
+        5.0 * ((impact_pressure / sea_level_pressure + 1.0) ** GAMMA_MINUS_ONE_OVER_GAMMA - 1.0)
     )
 
 
 def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
-    return cas - sea_level_speed_of_sound * (
-        (impact_pressure / sea_level_pressure + 1)
-        * (7.0 * (cas / sea_level_speed_of_sound) ** 2 - 1.0) ** 2.5
-        / (6**2.5 * 1.2**3.5)
-    ) ** (1.0 / 7.0)
+    return (
+        cas
+        - sea_level_speed_of_sound
+        * (
+            (impact_pressure / sea_level_pressure + 1.0)
+            * (7.0 * (cas / sea_level_speed_of_sound) ** 2 - 1.0) ** 2.5
+            / COEFF_1
+        )
+        ** GAMMA_MINUS_ONE_OVER_TWO_GAMMA
+    )
 
 
 def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):

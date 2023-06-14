@@ -72,7 +72,7 @@ def compute_pressure(altitude) -> np.ndarray:
 
     pressure = np.empty_like(altitude)
     pressure[idx_tropo] = SEA_LEVEL_PRESSURE * (1 - (altitude[idx_tropo] / 44330.78)) ** 5.25587611
-    pressure[idx_strato] = 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
+    pressure[idx_strato] = 22632.0 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
 
     return pressure
 
@@ -84,7 +84,7 @@ def _(altitude: Number) -> float:
     if altitude < TROPOPAUSE:
         pressure = SEA_LEVEL_PRESSURE * (1 - (altitude / 44330.78)) ** 5.25587611
     else:
-        pressure = 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
+        pressure = 22632.0 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
     return pressure
 
 
