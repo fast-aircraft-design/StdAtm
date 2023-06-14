@@ -12,8 +12,25 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import singledispatch
+from numbers import Number
+
 import numpy as np
 from scipy.optimize import fsolve
+
+
+#  This file is part of StdAtm
+#  Copyright (C) 2023 ONERA & ISAE-SUPAERO
+#  StdAtm is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 # TRUE AIRSPEED =================================================================
@@ -131,15 +148,16 @@ def compute_dynamic_pressure(mach, pressure):
 
 # IMPACT PRESSURE =================================================================
 def _compute_subsonic_impact_pressure(mach, pressure):
-    return pressure * ((1 + 0.2 * mach**2) ** 3.5 - 1)
+    return pressure * ((1.0 + 0.2 * mach**2) ** 3.5 - 1.0)
 
 
 def _compute_supersonic_impact_pressure(mach, pressure):
     # Rayleigh law
     # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
-    return pressure * (166.92158 * mach**7 / (7 * mach**2 - 1) ** 2.5 - 1)
+    return pressure * (166.92158 * mach**7 / (7 * mach**2 - 1.0) ** 2.5 - 1.0)
 
 
+@singledispatch
 def compute_impact_pressure(mach, pressure):
     """
 
@@ -147,10 +165,10 @@ def compute_impact_pressure(mach, pressure):
     :param pressure: in Pa
     :return: impact pressure in Pa
     """
-
+    # Implementation for numpy arrays
     mach = np.asarray(mach)
     idx_subsonic = mach <= 1.0
-    idx_supersonic = mach > 1
+    idx_supersonic = np.logical_not(idx_subsonic)
 
     if np.shape(pressure) != np.shape(mach):
         pressure = np.broadcast_to(pressure, np.shape(mach))
@@ -165,6 +183,15 @@ def compute_impact_pressure(mach, pressure):
         mach[idx_supersonic], pressure[idx_supersonic]
     )
     return impact_pressure
+
+
+@compute_impact_pressure.register
+def _(mach: Number, pressure: Number):
+    # Implementation for floats
+    if mach <= 1.0:
+        return _compute_subsonic_impact_pressure(mach, pressure)
+    else:
+        return _compute_supersonic_impact_pressure(mach, pressure)
 
 
 # CALIBRATED AIRSPEED =================================================================
