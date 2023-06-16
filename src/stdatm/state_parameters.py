@@ -113,6 +113,7 @@ def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.n
     return speed_of_sound
 
 
+# DYNAMIC VISCOSITY =================================================
 def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
     """
 
