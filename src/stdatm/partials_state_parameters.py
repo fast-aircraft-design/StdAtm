@@ -15,6 +15,7 @@
 from functools import lru_cache, singledispatch
 from numbers import Number
 
+import math
 import numpy as np
 from scipy.constants import R, atmosphere
 
@@ -40,9 +41,9 @@ def compute_partial_temperature(altitude, unit_coeff) -> np.ndarray:
     # Since the derivative for the stratosphere is zero, we will start with a zeros_like and not
     # an empty_like
     partial_temperature = np.zeros_like(altitude)
-    partial_temperature[idx_tropo] = -0.0065 * unit_coeff
+    partial_temperature[idx_tropo] = -0.0065
 
-    return partial_temperature
+    return partial_temperature * unit_coeff
 
 
 @compute_partial_temperature.register
@@ -50,7 +51,55 @@ def compute_partial_temperature(altitude, unit_coeff) -> np.ndarray:
 def _(altitude: Number, unit_coeff) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
-        partial_temperature = -0.0065 * unit_coeff
+        partial_temperature = -0.0065
     else:
         partial_temperature = 0.0
-    return partial_temperature
+    return partial_temperature * unit_coeff
+
+
+# PARTIAL PRESSURE =================================================================
+@singledispatch
+def compute_partial_pressure(altitude, unit_coeff) -> np.ndarray:
+    """
+    :param altitude: in m
+    :param unit_coeff: coefficient to adjust the partial computation if the altitude is in feet
+
+    :return: Partial of pressure in Pa with respect to altitude
+    """
+    # Implementation for numpy arrays
+    idx_tropo = altitude < TROPOPAUSE
+    idx_strato = np.logical_not(idx_tropo)
+
+    partial_pressure = np.empty_like(altitude)
+    partial_pressure[idx_tropo] = (
+        -5.25587611
+        / 44330.78
+        * SEA_LEVEL_PRESSURE
+        * (1 - (altitude[idx_tropo] / 44330.78)) ** 4.25587611
+    )
+    partial_pressure[idx_strato] = (
+        -0.0001576883
+        * 22632.0
+        * math.log(2.718281)
+        * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
+    )
+
+    return partial_pressure * unit_coeff
+
+
+@compute_partial_pressure.register
+@lru_cache()
+def _(altitude: Number, unit_coeff) -> float:
+    # Implementation for floats
+    if altitude < TROPOPAUSE:
+        partial_temperature = (
+            -5.25587611 / 44330.78 * SEA_LEVEL_PRESSURE * (1 - (altitude / 44330.78)) ** 4.25587611
+        )
+    else:
+        partial_temperature = (
+            -0.0001576883
+            * 22632.0
+            * math.log(2.718281)
+            * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
+        )
+    return partial_temperature * unit_coeff
