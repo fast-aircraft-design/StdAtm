@@ -20,7 +20,7 @@ from typing import Sequence, Union
 
 import numpy as np
 from scipy.constants import foot
-from scipy.optimize import fsolve
+from scipy.optimize import root
 
 from stdatm.speed_parameters import (
     compute_calibrated_airspeed,
@@ -355,8 +355,8 @@ class Atmosphere:
 
         You may overload this method to provide a direct method.
 
-        :param atm: the parent Atmosphere instance
-        :param value: value of the current speed parameter
+        :param parameter_name: name of the input speed attribute
+        :param value: value of the input speed parameter
         :return: value of true airspeed in m/s
         """
 
@@ -367,11 +367,11 @@ class Atmosphere:
         solver_atm = deepcopy(self)
         shape = np.shape(value)
         value = np.ravel(value)
-        root = fsolve(
+        solution = root(
             lambda tas: value - _compute_parameter(tas, solver_atm, shape),
             x0=500.0 * np.ones_like(value),
         )
-        return np.reshape(root, shape)
+        return np.reshape(solution.x, shape)
 
 
 class AtmosphereSI(Atmosphere):
