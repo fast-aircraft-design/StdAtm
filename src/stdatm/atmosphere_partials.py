@@ -26,6 +26,7 @@ from .partials_state_parameters import (
     compute_partial_temperature,
     compute_partial_pressure,
     compute_partial_density,
+    compute_partial_speed_of_sound,
 )
 
 AIR_MOLAR_MASS = 28.9647e-3
@@ -125,3 +126,18 @@ class AtmospherePartials(Atmosphere):
             )
 
         return self._partials_density_altitude
+
+    @property
+    def partial_speed_of_sound_altitude(self) -> Union[float, np.ndarray]:
+        """
+        Partial derivative of the speed of sound in m/s with respect to the altitude in the unit
+        provided.
+        """
+
+        if self._partials_speed_of_sound_altitude is None:
+            self._partials_speed_of_sound_altitude = compute_partial_speed_of_sound(
+                self.temperature,
+                self.partial_temperature_altitude,
+            )
+
+        return self._partials_speed_of_sound_altitude

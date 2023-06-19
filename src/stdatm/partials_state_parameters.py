@@ -134,3 +134,23 @@ def compute_partial_density(
     # Unit_coeff is not required because it is already included in the computation of the
     # temperature and pressure partial
     return partial_density
+
+
+# SPEED OF SOUND =================================================
+def compute_partial_speed_of_sound(
+    temperature: Union[np.ndarray, Number],
+    partial_temperature_altitude: Union[np.ndarray, Number],
+) -> Union[np.ndarray, Number]:
+    """
+    :param temperature: in K
+    :param partial_temperature_altitude: derivative of the temperature in K with respect to the
+                                         altitude
+
+    :return: Partial of speed of sound in m/s with respect to altitude
+    """
+
+    partial_speed_of_sound = (
+        0.5 * (1.4 * AIR_GAS_CONSTANT / temperature) ** 0.5 * partial_temperature_altitude
+    )
+
+    return partial_speed_of_sound
