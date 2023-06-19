@@ -171,7 +171,7 @@ class Atmosphere:
 
     @property
     def dynamic_viscosity(self) -> Union[float, np.ndarray]:
-        """Dynamic viscosity in m2/s."""
+        """Dynamic viscosity in kg/m/s."""
         if self._dynamic_viscosity is None:
             self._dynamic_viscosity = compute_dynamic_viscosity(self.temperature)
         return self._dynamic_viscosity

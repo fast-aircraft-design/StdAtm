@@ -120,7 +120,7 @@ def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[n
     :param temperature: in K
     :return: in kg/m/s
     """
-    dynamic_viscosity = (0.000017894 * (temperature / SEA_LEVEL_TEMPERATURE) ** (3 / 2)) * (
+    dynamic_viscosity = (0.000017894 * (temperature / SEA_LEVEL_TEMPERATURE) ** 1.5) * (
         (SEA_LEVEL_TEMPERATURE + 110.4) / (temperature + 110.4)
     )
 

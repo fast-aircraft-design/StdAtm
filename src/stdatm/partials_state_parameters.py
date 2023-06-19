@@ -154,3 +154,30 @@ def compute_partial_speed_of_sound(
     )
 
     return partial_speed_of_sound
+
+
+# DYNAMIC VISCOSITY =================================================
+def compute_partial_dynamic_viscosity(
+    temperature: Union[np.ndarray, Number],
+    sea_level_temperature: Number,
+    partial_temperature_altitude: Union[np.ndarray, Number],
+) -> Union[np.ndarray, Number]:
+    """
+    :param temperature: in K
+    :param sea_level_temperature: in K
+    :param partial_temperature_altitude: derivative of the temperature in K with respect to the
+                                         altitude
+
+    :return: Partial of dynamic viscosity in kg/m/s with respect to altitude
+    """
+
+    partial_dynamic_viscosity = (
+        0.000017894
+        * (sea_level_temperature + 110.4)
+        / sea_level_temperature**1.5
+        * (0.5 * temperature**1.5 + 110.4 * 1.5 * temperature**0.5)
+        / (temperature + 110.4) ** 2.0
+        * partial_temperature_altitude
+    )
+
+    return partial_dynamic_viscosity
