@@ -16,7 +16,7 @@ from functools import singledispatch
 from numbers import Number
 
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import root
 
 
 #  This file is part of StdAtm
@@ -218,12 +218,12 @@ def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level
 
 
 def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
-    root = fsolve(
+    solution = root(
         _equation_cas_high_speed,
         x0=sea_level_speed_of_sound * np.ones_like(impact_pressure),
         args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
     )
-    return root
+    return solution.x
 
 
 @singledispatch
