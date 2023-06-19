@@ -72,20 +72,18 @@ def compute_tas_from_unit_re(unitary_reynolds, kinematic_viscosity):
 
 
 # From dynamic pressure -----------------------------------------------------------------
-def compute_tas_from_pdyn(dynamic_pressure, pressure, speed_of_sound):
+def compute_tas_from_pdyn(dynamic_pressure, density):
     """
 
     :param dynamic_pressure: in Pa
-    :param pressure: in Pa
-    :param speed_of_sound: in m/s
+    :param density: in kg/m**3
     :return: true airspeed in m/s
     """
-    true_airspeed = np.sqrt(dynamic_pressure / 0.7 / pressure) * speed_of_sound
+    true_airspeed = np.sqrt(2.0 * dynamic_pressure / density)
     return true_airspeed
 
 
 # MACH =================================================================
-# From true airspeed -----------------------------------------------------------------
 def compute_mach(true_airspeed, speed_of_sound):
     """
 
@@ -94,18 +92,6 @@ def compute_mach(true_airspeed, speed_of_sound):
     :return: Mach number (no unit)
     """
     mach = true_airspeed / speed_of_sound
-    return mach
-
-
-# From dynamic pressure -----------------------------------------------------------------
-def compute_mach_from_pdyn(dynamic_pressure, pressure):
-    """
-
-    :param dynamic_pressure: in Pa
-    :param pressure: in Pa
-    :return: Mach number (no unit)
-    """
-    mach = np.sqrt(dynamic_pressure / 0.7 / pressure)
     return mach
 
 
@@ -135,14 +121,14 @@ def compute_unitary_reynolds(true_airspeed, kinematic_viscosity):
 
 
 # DYNAMIC PRESSURE =================================================================
-def compute_dynamic_pressure(mach, pressure):
+def compute_dynamic_pressure(true_airspeed, density):
     """
 
-    :param mach: no unit
-    :param pressure: in Pa
-    :return: dynamic pressure in Pa
+    :param true_airspeed: in m/s
+    :param density: in kg/m**3
+    :return: incompressible dynamic pressure in Pa
     """
-    true_airspeed = 0.7 * mach**2 * pressure
+    true_airspeed = 0.5 * density * true_airspeed**2
     return true_airspeed
 
 

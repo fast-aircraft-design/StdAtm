@@ -28,9 +28,9 @@ from stdatm.speed_parameters import (
     compute_equivalent_airspeed,
     compute_impact_pressure,
     compute_mach,
-    compute_mach_from_pdyn,
     compute_tas_from_eas,
     compute_tas_from_mach,
+    compute_tas_from_pdyn,
     compute_tas_from_unit_re,
     compute_unitary_reynolds,
 )
@@ -221,8 +221,7 @@ class Atmosphere:
                     self._unitary_reynolds, self.kinematic_viscosity
                 )
             elif self._dynamic_pressure is not None:
-                self._mach = compute_mach_from_pdyn(self._dynamic_pressure, self.pressure)
-                self._true_airspeed = compute_tas_from_mach(self._mach, self.speed_of_sound)
+                self._true_airspeed = compute_tas_from_pdyn(self._dynamic_pressure, self.density)
             elif self._impact_pressure is not None:
                 self._true_airspeed = self._compute_true_airspeed(
                     "impact_pressure", self._impact_pressure
@@ -267,7 +266,7 @@ class Atmosphere:
         It is given by q = 0.5 * mach**2 * gamma * static_pressure.
         """
         if self.mach is not None:
-            self._dynamic_pressure = compute_dynamic_pressure(self.mach, self.pressure)
+            self._dynamic_pressure = compute_dynamic_pressure(self.true_airspeed, self.density)
         return self._dynamic_pressure
 
     @property
