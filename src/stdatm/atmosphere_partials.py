@@ -22,7 +22,11 @@ from scipy.constants import R, atmosphere, foot
 
 from .atmosphere import Atmosphere
 
-from .partials_state_parameters import compute_partial_temperature, compute_partial_pressure
+from .partials_state_parameters import (
+    compute_partial_temperature,
+    compute_partial_pressure,
+    compute_partial_density,
+)
 
 AIR_MOLAR_MASS = 28.9647e-3
 AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
@@ -94,7 +98,7 @@ class AtmospherePartials(Atmosphere):
     @property
     def partial_pressure_altitude(self) -> Union[float, np.ndarray]:
         """
-        Partial derivative of the temperature in K with respect to the altitude in the unit
+        Partial derivative of the pressure in Pa with respect to the altitude in the unit
         provided.
         """
 
@@ -104,3 +108,20 @@ class AtmospherePartials(Atmosphere):
             )
 
         return self._partials_pressure_altitude
+
+    @property
+    def partial_density_altitude(self) -> Union[float, np.ndarray]:
+        """
+        Partial derivative of the density in kg/m**3 with respect to the altitude in the unit
+        provided.
+        """
+
+        if self._partials_density_altitude is None:
+            self._partials_density_altitude = compute_partial_density(
+                self.temperature,
+                self.pressure,
+                self.partial_temperature_altitude,
+                self.partial_pressure_altitude,
+            )
+
+        return self._partials_density_altitude

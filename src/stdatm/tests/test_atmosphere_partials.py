@@ -107,13 +107,47 @@ def test_pressure_partials_against_fd_ft(altitude):
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
 
 
+def test_performances_density_partials_array(altitude, benchmark):
+    def func():
+        atm = get_atmosphere(altitude, False)
+        _ = atm.partial_density_altitude
+
+    benchmark(func)
+
+
+def test_density_partials_against_fd(altitude):
+    atm_minus = get_atmosphere_minus_step(altitude)
+    atm_plus = get_atmosphere_plus_step(altitude)
+
+    atm = get_atmosphere(altitude, False)
+
+    computed_partials = atm.partial_density_altitude
+    verify_partials = (atm_plus.density - atm_minus.density) / (2.0 * STEP)
+
+    assert_allclose(computed_partials, verify_partials, rtol=5e-5)
+
+
+def test_density_partials_against_fd_ft(altitude):
+    atm_minus = get_atmosphere_minus_step_ft(altitude)
+    atm_plus = get_atmosphere_plus_step_ft(altitude)
+
+    atm = get_atmosphere(altitude / foot, True)
+
+    computed_partials = atm.partial_density_altitude
+    verify_partials = (atm_plus.density - atm_minus.density) / (2.0 * STEP)
+
+    assert_allclose(computed_partials, verify_partials, rtol=5e-5)
+
+
 def test_performances_reask_array(altitude, benchmark):
     atm = get_atmosphere(altitude, False)
     _ = atm.partial_temperature_altitude
     _ = atm.partial_pressure_altitude
+    _ = atm.partial_density_altitude
 
     def func():
         _ = atm.partial_temperature_altitude
         _ = atm.partial_pressure_altitude
+        _ = atm.partial_density_altitude
 
     benchmark(func)

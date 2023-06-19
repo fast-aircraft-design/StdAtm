@@ -14,6 +14,7 @@
 
 from functools import lru_cache, singledispatch
 from numbers import Number
+from typing import Union
 
 import math
 import numpy as np
@@ -103,3 +104,33 @@ def _(altitude: Number, unit_coeff) -> float:
             * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
         )
     return partial_temperature * unit_coeff
+
+
+# PARTIAL DENSITY =================================================================
+def compute_partial_density(
+    temperature: Union[np.ndarray, Number],
+    pressure: Union[np.ndarray, Number],
+    partial_temperature_altitude: Union[np.ndarray, Number],
+    partial_pressure_altitude: Union[np.ndarray, Number],
+) -> Union[np.ndarray, Number]:
+    """
+    :param temperature: in K
+    :param pressure: in Pa
+    :param partial_temperature_altitude: derivative of the temperature in K with respect to the
+                                         altitude
+    :param partial_pressure_altitude: derivative of the pressure in Pa with respect to the
+                                      altitude
+
+    :return: Partial of density in kg/m**3 with respect to altitude
+    """
+
+    partial_density = (
+        1.0
+        / AIR_GAS_CONSTANT
+        * (partial_pressure_altitude * temperature - pressure * partial_temperature_altitude)
+        / temperature**2.0
+    )
+
+    # Unit_coeff is not required because it is already included in the computation of the
+    # temperature and pressure partial
+    return partial_density
