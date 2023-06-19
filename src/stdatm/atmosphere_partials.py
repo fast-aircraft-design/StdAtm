@@ -28,7 +28,7 @@ from .partials_state_parameters import (
     compute_partial_density,
     compute_partial_speed_of_sound,
     compute_partial_dynamic_viscosity,
-compute_partial_kinematic_viscosity,
+    compute_partial_kinematic_viscosity,
 )
 
 AIR_MOLAR_MASS = 28.9647e-3
@@ -52,9 +52,22 @@ class AtmospherePartials(Atmosphere):
     - if altitude is given as nD numpy array, returned values will be nD numpy
       arrays
 
+    The AtmospherePartials class inherits from the Atmosphere class and thus retains its usages. It
+    however adds the computation of the partial derivatives of all state properties with respect to
+    the altitude.
+
     Usage:
 
-    TO BE FILLED
+    .. code-block::
+        >>> from stdatm import AtmospherePartials
+        >>> pressure = AtmospherePartials(30000).pressure # pressure at 30,000 feet, dISA = 0 K
+        >>> partials_pressure_altitude = AtmospherePartials(30000).partial_pressure_altitude # pressure at 30,000 feet, dISA = 0 K
+
+        >>> atm = AtmospherePartials([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
+        >>> atm.partial_pressure_altitude # derivative of pressures with respect to altitude for all defined altitudes
+        array([-3.66160356, -2.70401861, -1.36992549])
+        >>> atm.partial_dynamic_viscosity_altitude # derivative of dynamic viscosities with respect to altitude for all defined altitudes
+        array([-9.55961630e-11, -9.88873356e-11, -1.06349854e-10])
     """
 
     def __init__(
@@ -145,7 +158,7 @@ class AtmospherePartials(Atmosphere):
         return self._partials_speed_of_sound_altitude
 
     @property
-    def partials_dynamic_viscosity_altitude(self) -> Union[float, np.ndarray]:
+    def partial_dynamic_viscosity_altitude(self) -> Union[float, np.ndarray]:
         """
         Partial derivative of the dynamic viscosity in kg/m/s with respect to the altitude in the
         unit provided.
@@ -161,7 +174,7 @@ class AtmospherePartials(Atmosphere):
         return self._partials_dynamic_viscosity_altitude
 
     @property
-    def partials_kinematic_viscosity_altitude(self) -> Union[float, np.ndarray]:
+    def partial_kinematic_viscosity_altitude(self) -> Union[float, np.ndarray]:
         """
         Partial derivative of the kinematic viscosity in m**2/s with respect to the altitude in the
         unit provided.
@@ -171,7 +184,7 @@ class AtmospherePartials(Atmosphere):
             self._partials_kinematic_viscosity_altitude = compute_partial_kinematic_viscosity(
                 self.dynamic_viscosity,
                 self.density,
-                self.partials_dynamic_viscosity_altitude,
+                self.partial_dynamic_viscosity_altitude,
                 self.partial_density_altitude,
             )
 

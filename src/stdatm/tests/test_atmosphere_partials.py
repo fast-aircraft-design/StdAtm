@@ -174,7 +174,7 @@ def test_speed_of_sound_partials_against_fd_ft(altitude):
 def test_performances_dynamic_viscosity_partials_array(altitude, benchmark):
     def func():
         atm = get_atmosphere(altitude, False)
-        _ = atm.partials_dynamic_viscosity_altitude
+        _ = atm.partial_dynamic_viscosity_altitude
 
     benchmark(func)
 
@@ -185,7 +185,7 @@ def test_dynamic_viscosity_partials_against_fd(altitude):
 
     atm = get_atmosphere(altitude, False)
 
-    computed_partials = atm.partials_dynamic_viscosity_altitude
+    computed_partials = atm.partial_dynamic_viscosity_altitude
     verify_partials = (atm_plus.dynamic_viscosity - atm_minus.dynamic_viscosity) / (2.0 * STEP)
 
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
@@ -197,7 +197,7 @@ def test_dynamic_viscosity_partials_against_fd_ft(altitude):
 
     atm = get_atmosphere(altitude / foot, True)
 
-    computed_partials = atm.partials_dynamic_viscosity_altitude
+    computed_partials = atm.partial_dynamic_viscosity_altitude
     verify_partials = (atm_plus.dynamic_viscosity - atm_minus.dynamic_viscosity) / (2.0 * STEP)
 
     assert_allclose(computed_partials, verify_partials, rtol=1e-4)
@@ -206,7 +206,7 @@ def test_dynamic_viscosity_partials_against_fd_ft(altitude):
 def test_performances_kinematic_viscosity_partials_array(altitude, benchmark):
     def func():
         atm = get_atmosphere(altitude, False)
-        _ = atm.partials_kinematic_viscosity_altitude
+        _ = atm.partial_kinematic_viscosity_altitude
 
     benchmark(func)
 
@@ -217,7 +217,7 @@ def test_kinematic_viscosity_partials_against_fd(altitude):
 
     atm = get_atmosphere(altitude, False)
 
-    computed_partials = atm.partials_kinematic_viscosity_altitude
+    computed_partials = atm.partial_kinematic_viscosity_altitude
     verify_partials = (atm_plus.kinematic_viscosity - atm_minus.kinematic_viscosity) / (2.0 * STEP)
 
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
@@ -229,7 +229,7 @@ def test_kinematic_viscosity_partials_against_fd_ft(altitude):
 
     atm = get_atmosphere(altitude / foot, True)
 
-    computed_partials = atm.partials_kinematic_viscosity_altitude
+    computed_partials = atm.partial_kinematic_viscosity_altitude
     verify_partials = (atm_plus.kinematic_viscosity - atm_minus.kinematic_viscosity) / (2.0 * STEP)
 
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
@@ -241,15 +241,15 @@ def test_performances_reask_array(altitude, benchmark):
     _ = atm.partial_pressure_altitude
     _ = atm.partial_density_altitude
     _ = atm.partial_speed_of_sound_altitude
-    _ = atm.partials_dynamic_viscosity_altitude
-    _ = atm.partials_kinematic_viscosity_altitude
+    _ = atm.partial_dynamic_viscosity_altitude
+    _ = atm.partial_kinematic_viscosity_altitude
 
     def func():
         _ = atm.partial_temperature_altitude
         _ = atm.partial_pressure_altitude
         _ = atm.partial_density_altitude
         _ = atm.partial_speed_of_sound_altitude
-        _ = atm.partials_dynamic_viscosity_altitude
-        _ = atm.partials_kinematic_viscosity_altitude
+        _ = atm.partial_dynamic_viscosity_altitude
+        _ = atm.partial_kinematic_viscosity_altitude
 
     benchmark(func)

@@ -61,7 +61,7 @@ class Atmosphere:
 
 
         >>> atm = Atmosphere([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
-        >>> atm.compute_pressure # pressures for all defined altitudes
+        >>> atm.pressure # pressures for all defined altitudes
         array([101325.        ,  69681.66657158,  30089.59825871])
         >>> atm.kinematic_viscosity # viscosities for all defined altitudes
         array([1.46074563e-05, 1.87057660e-05, 3.24486943e-05])
