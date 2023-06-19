@@ -185,20 +185,26 @@ def _(mach: Number, pressure: Number):
 #         Gracey, William (1980), "Measurement of Aircraft Speed and Altitude",
 #         NASA Reference Publication 1046.
 #         https://apps.dtic.mil/sti/pdfs/ADA280006.pdf
+#         These formula allow to compute the impact pressure from CAS. The formula to be used
+#         is decided according to comparison between CAS value and speed of sound at sea level.
+#         Here we use them the other way around, which explains why the equation to be used is,
+#         oddly, decided by its result.
 
 # Pre-calculation of some equation constants for sake of speed.
 GAMMA_MINUS_ONE_OVER_GAMMA = (1.4 - 1.0) / 1.4
-GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (1.4 - 1.0) / 2.8
+GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (1.4 - 1.0) / (2.0 * 1.4)
 COEFF_1 = 6.0**2.5 * 1.2**3.5
 
 
 def _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+    # To be used when resulting CAS is lower than sea_level_speed_of_sound
     return sea_level_speed_of_sound * np.sqrt(
         5.0 * ((impact_pressure / sea_level_pressure + 1.0) ** GAMMA_MINUS_ONE_OVER_GAMMA - 1.0)
     )
 
 
 def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+    # To be used when resulting CAS is greater than sea_level_speed_of_sound
     return (
         cas
         - sea_level_speed_of_sound
