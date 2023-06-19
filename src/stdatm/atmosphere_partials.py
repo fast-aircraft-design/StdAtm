@@ -28,6 +28,7 @@ from .partials_state_parameters import (
     compute_partial_density,
     compute_partial_speed_of_sound,
     compute_partial_dynamic_viscosity,
+compute_partial_kinematic_viscosity,
 )
 
 AIR_MOLAR_MASS = 28.9647e-3
@@ -158,6 +159,23 @@ class AtmospherePartials(Atmosphere):
             )
 
         return self._partials_dynamic_viscosity_altitude
+
+    @property
+    def partials_kinematic_viscosity_altitude(self) -> Union[float, np.ndarray]:
+        """
+        Partial derivative of the kinematic viscosity in m**2/s with respect to the altitude in the
+        unit provided.
+        """
+
+        if self._partials_kinematic_viscosity_altitude is None:
+            self._partials_kinematic_viscosity_altitude = compute_partial_kinematic_viscosity(
+                self.dynamic_viscosity,
+                self.density,
+                self.partials_dynamic_viscosity_altitude,
+                self.partial_density_altitude,
+            )
+
+        return self._partials_kinematic_viscosity_altitude
 
 
 SEA_LEVEL_ATMOSPHERE = Atmosphere(0.0)

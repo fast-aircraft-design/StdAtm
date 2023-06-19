@@ -181,3 +181,28 @@ def compute_partial_dynamic_viscosity(
     )
 
     return partial_dynamic_viscosity
+
+
+# KINEMATIC VISCOSITY =================================================
+def compute_partial_kinematic_viscosity(
+    dynamic_viscosity: Union[np.ndarray, Number],
+    density: Union[np.ndarray, Number],
+    partial_dynamic_viscosity_altitude: Union[np.ndarray, Number],
+    partial_density_altitude: Union[np.ndarray, Number],
+) -> Union[np.ndarray, Number]:
+    """
+    :param dynamic_viscosity: in kg/m/s
+    :param density: in kg/m**3
+    :param partial_dynamic_viscosity_altitude: derivative of the dynamic viscosity in kg/m/s with
+                                               respect to the altitude
+    :param partial_density_altitude: derivative of the density in kg/m**3 with respect to the
+                                     altitude
+
+    :return: Partial of kinematic viscosity in m**2/s with respect to altitude
+    """
+
+    partial_kinematic_viscosity = (
+        partial_dynamic_viscosity_altitude * density - dynamic_viscosity * partial_density_altitude
+    ) / density**2.0
+
+    return partial_kinematic_viscosity
