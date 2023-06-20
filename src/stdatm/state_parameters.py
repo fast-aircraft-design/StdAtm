@@ -25,6 +25,7 @@ AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
 SEA_LEVEL_PRESSURE = atmosphere
 SEA_LEVEL_TEMPERATURE = 288.15
 TROPOPAUSE = 11000.0
+GAMMA = 1.4
 
 
 # TEMPERATURE =================================================================
@@ -109,7 +110,7 @@ def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.n
     :param temperature: in K
     :return: in m/s
     """
-    speed_of_sound = (1.4 * AIR_GAS_CONSTANT * temperature) ** 0.5
+    speed_of_sound = (GAMMA * AIR_GAS_CONSTANT * temperature) ** 0.5
     return speed_of_sound
 
 

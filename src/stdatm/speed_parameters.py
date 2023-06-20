@@ -18,19 +18,7 @@ from numbers import Number
 import numpy as np
 from scipy.optimize import root
 
-
-#  This file is part of StdAtm
-#  Copyright (C) 2023 ONERA & ISAE-SUPAERO
-#  StdAtm is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from stdatm.state_parameters import GAMMA
 
 
 # TRUE AIRSPEED =================================================================
@@ -137,10 +125,15 @@ def _compute_subsonic_impact_pressure(mach, pressure):
     return pressure * ((1.0 + 0.2 * mach**2) ** 3.5 - 1.0)
 
 
+COEFF_2 = (GAMMA + 1) / 2 * ((GAMMA + 1) ** 2 / (2 * (GAMMA - 1))) ** (1 / (GAMMA - 1))
+
+
 def _compute_supersonic_impact_pressure(mach, pressure):
-    # Rayleigh law
-    # https://en.wikipedia.org/wiki/Rayleigh_flow#Additional_Rayleigh_Flow_Relations
-    return pressure * (166.92158 * mach**7 / (7 * mach**2 - 1.0) ** 2.5 - 1.0)
+    # Computation is done using Eq. (16) from:
+    # W. Wuest (1980), AGARDograph 160
+    # "AGARD Flight Test Instrumentation Series Volume 11 on Pressure and Flow Measurement"
+    # https://www.sto.nato.int/publications/AGARD/AGARD-AG-160-VOL-2/AGARD-AG-160-VOL-2.pdf
+    return pressure * (COEFF_2 * mach**7 / (7 * mach**2 - 1.0) ** 2.5 - 1.0)
 
 
 @singledispatch
@@ -191,8 +184,8 @@ def _(mach: Number, pressure: Number):
 #         oddly, decided by its result.
 
 # Pre-calculation of some equation constants for sake of speed.
-GAMMA_MINUS_ONE_OVER_GAMMA = (1.4 - 1.0) / 1.4
-GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (1.4 - 1.0) / (2.0 * 1.4)
+GAMMA_MINUS_ONE_OVER_GAMMA = (GAMMA - 1.0) / GAMMA
+GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (GAMMA - 1.0) / (2.0 * GAMMA)
 COEFF_1 = 6.0**2.5 * 1.2**3.5
 
 
