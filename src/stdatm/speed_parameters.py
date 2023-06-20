@@ -13,7 +13,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from functools import singledispatch
-from numbers import Number
+from numbers import Real
 
 import numpy as np
 from scipy.optimize import root
@@ -165,7 +165,7 @@ def compute_impact_pressure(mach, pressure):
 
 
 @compute_impact_pressure.register
-def _(mach: Number, pressure: Number):
+def _(mach: Real, pressure: Real):
     # Implementation for floats
     if mach <= 1.0:
         return _compute_subsonic_impact_pressure(mach, pressure)
@@ -245,7 +245,7 @@ def compute_calibrated_airspeed(impact_pressure, sea_level_pressure, sea_level_s
 
 
 @compute_calibrated_airspeed.register
-def _(impact_pressure: Number, sea_level_pressure: Number, sea_level_speed_of_sound: Number):
+def _(impact_pressure: Real, sea_level_pressure: Real, sea_level_speed_of_sound: Real):
     # Implementation for floats
     calibrated_airspeed = _compute_cas_low_speed(
         impact_pressure, sea_level_pressure, sea_level_speed_of_sound

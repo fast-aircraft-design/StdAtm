@@ -14,7 +14,7 @@
 
 
 from functools import lru_cache, singledispatch
-from numbers import Number
+from numbers import Real
 from typing import Union
 
 import numpy as np
@@ -50,7 +50,7 @@ def compute_temperature(altitude, delta_t) -> np.ndarray:
 
 @compute_temperature.register
 @lru_cache()
-def _(altitude: Number, delta_t: Number) -> float:
+def _(altitude: Real, delta_t: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         temperature = SEA_LEVEL_TEMPERATURE - 0.0065 * altitude + delta_t
@@ -80,7 +80,7 @@ def compute_pressure(altitude) -> np.ndarray:
 
 @compute_pressure.register
 @lru_cache()
-def _(altitude: Number) -> float:
+def _(altitude: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         pressure = SEA_LEVEL_PRESSURE * (1 - (altitude / 44330.78)) ** 5.25587611
@@ -91,8 +91,8 @@ def _(altitude: Number) -> float:
 
 # DENSITY =================================================================
 def compute_density(
-    pressure: Union[np.ndarray, Number], temperature: Union[np.ndarray, Number]
-) -> Union[np.ndarray, Number]:
+    pressure: Union[np.ndarray, Real], temperature: Union[np.ndarray, Real]
+) -> Union[np.ndarray, Real]:
     """
 
     :param pressure: in Pa
@@ -104,7 +104,7 @@ def compute_density(
 
 
 # SPEED OF SOUND =================================================
-def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+def compute_speed_of_sound(temperature: Union[np.ndarray, Real]) -> Union[np.ndarray, Real]:
     """
 
     :param temperature: in K
@@ -115,7 +115,7 @@ def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.n
 
 
 # DYNAMIC VISCOSITY =================================================
-def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+def compute_dynamic_viscosity(temperature: Union[np.ndarray, Real]) -> Union[np.ndarray, Real]:
     """
 
     :param temperature: in K
@@ -130,8 +130,8 @@ def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[n
 
 # KINEMATIC VISCOSITY =================================================
 def compute_kinematic_viscosity(
-    dynamic_viscosity: Union[np.ndarray, Number], density: Union[np.ndarray, Number]
-) -> Union[np.ndarray, Number]:
+    dynamic_viscosity: Union[np.ndarray, Real], density: Union[np.ndarray, Real]
+) -> Union[np.ndarray, Real]:
     """
 
     :param dynamic_viscosity: in kg/m/s
