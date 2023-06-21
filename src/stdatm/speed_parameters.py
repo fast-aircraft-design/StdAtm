@@ -169,8 +169,8 @@ def _(mach: Real, pressure: Real):
     # Implementation for floats
     if mach <= 1.0:
         return _compute_subsonic_impact_pressure(mach, pressure)
-    else:
-        return _compute_supersonic_impact_pressure(mach, pressure)
+
+    return _compute_supersonic_impact_pressure(mach, pressure)
 
 
 # CALIBRATED AIRSPEED =================================================================
