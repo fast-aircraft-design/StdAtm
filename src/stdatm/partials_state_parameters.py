@@ -13,7 +13,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from functools import lru_cache, singledispatch
-from numbers import Number
+from numbers import Real
 from typing import Union
 
 import math
@@ -49,7 +49,7 @@ def compute_partial_temperature(altitude, unit_coeff) -> np.ndarray:
 
 @compute_partial_temperature.register
 @lru_cache()
-def _(altitude: Number, unit_coeff) -> float:
+def _(altitude: Real, unit_coeff) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         partial_temperature = -0.0065
@@ -90,7 +90,7 @@ def compute_partial_pressure(altitude, unit_coeff) -> np.ndarray:
 
 @compute_partial_pressure.register
 @lru_cache()
-def _(altitude: Number, unit_coeff) -> float:
+def _(altitude: Real, unit_coeff) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         partial_temperature = (
@@ -108,11 +108,11 @@ def _(altitude: Number, unit_coeff) -> float:
 
 # PARTIAL DENSITY =================================================================
 def compute_partial_density(
-    temperature: Union[np.ndarray, Number],
-    pressure: Union[np.ndarray, Number],
-    partial_temperature_altitude: Union[np.ndarray, Number],
-    partial_pressure_altitude: Union[np.ndarray, Number],
-) -> Union[np.ndarray, Number]:
+    temperature: Union[np.ndarray, Real],
+    pressure: Union[np.ndarray, Real],
+    partial_temperature_altitude: Union[np.ndarray, Real],
+    partial_pressure_altitude: Union[np.ndarray, Real],
+) -> Union[np.ndarray, Real]:
     """
     :param temperature: in K
     :param pressure: in Pa
@@ -138,9 +138,9 @@ def compute_partial_density(
 
 # SPEED OF SOUND =================================================
 def compute_partial_speed_of_sound(
-    temperature: Union[np.ndarray, Number],
-    partial_temperature_altitude: Union[np.ndarray, Number],
-) -> Union[np.ndarray, Number]:
+    temperature: Union[np.ndarray, Real],
+    partial_temperature_altitude: Union[np.ndarray, Real],
+) -> Union[np.ndarray, Real]:
     """
     :param temperature: in K
     :param partial_temperature_altitude: derivative of the temperature in K with respect to the
@@ -158,10 +158,10 @@ def compute_partial_speed_of_sound(
 
 # DYNAMIC VISCOSITY =================================================
 def compute_partial_dynamic_viscosity(
-    temperature: Union[np.ndarray, Number],
-    sea_level_temperature: Number,
-    partial_temperature_altitude: Union[np.ndarray, Number],
-) -> Union[np.ndarray, Number]:
+    temperature: Union[np.ndarray, Real],
+    sea_level_temperature: Real,
+    partial_temperature_altitude: Union[np.ndarray, Real],
+) -> Union[np.ndarray, Real]:
     """
     :param temperature: in K
     :param sea_level_temperature: in K
@@ -185,11 +185,11 @@ def compute_partial_dynamic_viscosity(
 
 # KINEMATIC VISCOSITY =================================================
 def compute_partial_kinematic_viscosity(
-    dynamic_viscosity: Union[np.ndarray, Number],
-    density: Union[np.ndarray, Number],
-    partial_dynamic_viscosity_altitude: Union[np.ndarray, Number],
-    partial_density_altitude: Union[np.ndarray, Number],
-) -> Union[np.ndarray, Number]:
+    dynamic_viscosity: Union[np.ndarray, Real],
+    density: Union[np.ndarray, Real],
+    partial_dynamic_viscosity_altitude: Union[np.ndarray, Real],
+    partial_density_altitude: Union[np.ndarray, Real],
+) -> Union[np.ndarray, Real]:
     """
     :param dynamic_viscosity: in kg/m/s
     :param density: in kg/m**3
