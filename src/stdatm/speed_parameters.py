@@ -92,7 +92,7 @@ def compute_equivalent_airspeed(true_airspeed, density, sea_level_density):
     :param sea_level_density: in kg/m**3
     :return: equivalent airspeed in m/s
     """
-    equivalent_airspeed = true_airspeed * np.sqrt(density / sea_level_density )
+    equivalent_airspeed = true_airspeed * np.sqrt(density / sea_level_density)
     return equivalent_airspeed
 
 
@@ -125,7 +125,9 @@ def _compute_subsonic_impact_pressure(mach, pressure):
     return pressure * ((1.0 + 0.2 * mach**2) ** 3.5 - 1.0)
 
 
-COEFF_2 = (GAMMA + 1) / 2 * ((GAMMA + 1) ** 2 / (2 * (GAMMA - 1))) ** (1 / (GAMMA - 1))
+COEFF_SUPERSONIC_IMPACT_PRESSURE = (
+    (GAMMA + 1) / 2 * ((GAMMA + 1) ** 2 / (2 * (GAMMA - 1))) ** (1 / (GAMMA - 1))
+)
 
 
 def _compute_supersonic_impact_pressure(mach, pressure):
@@ -133,7 +135,9 @@ def _compute_supersonic_impact_pressure(mach, pressure):
     # W. Wuest (1980), AGARDograph 160
     # "AGARD Flight Test Instrumentation Series Volume 11 on Pressure and Flow Measurement"
     # https://www.sto.nato.int/publications/AGARD/AGARD-AG-160-VOL-2/AGARD-AG-160-VOL-2.pdf
-    return pressure * (COEFF_2 * mach**7 / (7 * mach**2 - 1.0) ** 2.5 - 1.0)
+    return pressure * (
+        COEFF_SUPERSONIC_IMPACT_PRESSURE * mach**7 / (7 * mach**2 - 1.0) ** 2.5 - 1.0
+    )
 
 
 @singledispatch
@@ -186,7 +190,7 @@ def _(mach: Real, pressure: Real):
 # Pre-calculation of some equation constants for sake of speed.
 GAMMA_MINUS_ONE_OVER_GAMMA = (GAMMA - 1.0) / GAMMA
 GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (GAMMA - 1.0) / (2.0 * GAMMA)
-COEFF_1 = 6.0**2.5 * 1.2**3.5
+COEFF_HIGH_SPEED_CAS = 6.0**2.5 * 1.2**3.5
 
 
 def _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
@@ -204,7 +208,7 @@ def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level
         * (
             (impact_pressure / sea_level_pressure + 1.0)
             * (7.0 * (cas / sea_level_speed_of_sound) ** 2 - 1.0) ** 2.5
-            / COEFF_1
+            / COEFF_HIGH_SPEED_CAS
         )
         ** GAMMA_MINUS_ONE_OVER_TWO_GAMMA
     )
