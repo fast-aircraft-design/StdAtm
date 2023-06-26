@@ -92,7 +92,7 @@ def compute_equivalent_airspeed(true_airspeed, density, sea_level_density):
     :param sea_level_density: in kg/m**3
     :return: equivalent airspeed in m/s
     """
-    equivalent_airspeed = true_airspeed / np.sqrt(sea_level_density / density)
+    equivalent_airspeed = true_airspeed * np.sqrt(density / sea_level_density )
     return equivalent_airspeed
 
 
