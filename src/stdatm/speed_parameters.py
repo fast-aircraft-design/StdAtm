@@ -16,7 +16,7 @@ from functools import singledispatch
 from numbers import Real
 
 import numpy as np
-from scipy.optimize import root
+from scipy.optimize import root, root_scalar
 
 from stdatm.state_parameters import GAMMA
 
@@ -214,6 +214,7 @@ def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level
     )
 
 
+@singledispatch
 def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
     solution = root(
         _equation_cas_high_speed,
@@ -221,6 +222,16 @@ def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed
         args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
     )
     return solution.x
+
+
+@_compute_cas_high_speed.register
+def _(impact_pressure: Real, sea_level_pressure: Real, sea_level_speed_of_sound: Real):
+    solution = root_scalar(
+        _equation_cas_high_speed,
+        bracket=[sea_level_speed_of_sound, 10.0 * sea_level_speed_of_sound],
+        args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
+    )
+    return solution.root
 
 
 @singledispatch
