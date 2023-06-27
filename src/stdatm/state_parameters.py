@@ -14,7 +14,7 @@
 
 
 from functools import lru_cache, singledispatch
-from numbers import Number
+from numbers import Real
 from typing import Union
 
 import numpy as np
@@ -25,6 +25,7 @@ AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
 SEA_LEVEL_PRESSURE = atmosphere
 SEA_LEVEL_TEMPERATURE = 288.15
 TROPOPAUSE = 11000.0
+GAMMA = 1.4
 
 
 # TEMPERATURE =================================================================
@@ -49,7 +50,7 @@ def compute_temperature(altitude, delta_t) -> np.ndarray:
 
 @compute_temperature.register
 @lru_cache()
-def _(altitude: Number, delta_t: Number) -> float:
+def _(altitude: Real, delta_t: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         temperature = SEA_LEVEL_TEMPERATURE - 0.0065 * altitude + delta_t
@@ -72,26 +73,26 @@ def compute_pressure(altitude) -> np.ndarray:
 
     pressure = np.empty_like(altitude)
     pressure[idx_tropo] = SEA_LEVEL_PRESSURE * (1 - (altitude[idx_tropo] / 44330.78)) ** 5.25587611
-    pressure[idx_strato] = 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
+    pressure[idx_strato] = 22632.0 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
 
     return pressure
 
 
 @compute_pressure.register
 @lru_cache()
-def _(altitude: Number) -> float:
+def _(altitude: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         pressure = SEA_LEVEL_PRESSURE * (1 - (altitude / 44330.78)) ** 5.25587611
     else:
-        pressure = 22632 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
+        pressure = 22632.0 * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
     return pressure
 
 
 # DENSITY =================================================================
 def compute_density(
-    pressure: Union[np.ndarray, Number], temperature: Union[np.ndarray, Number]
-) -> Union[np.ndarray, Number]:
+    pressure: Union[np.ndarray, Real], temperature: Union[np.ndarray, Real]
+) -> Union[np.ndarray, Real]:
     """
 
     :param pressure: in Pa
@@ -103,18 +104,18 @@ def compute_density(
 
 
 # SPEED OF SOUND =================================================
-def compute_speed_of_sound(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+def compute_speed_of_sound(temperature: Union[np.ndarray, Real]) -> Union[np.ndarray, Real]:
     """
 
     :param temperature: in K
     :return: in m/s
     """
-    speed_of_sound = (1.4 * AIR_GAS_CONSTANT * temperature) ** 0.5
+    speed_of_sound = (GAMMA * AIR_GAS_CONSTANT * temperature) ** 0.5
     return speed_of_sound
 
 
 # DYNAMIC VISCOSITY =================================================
-def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[np.ndarray, Number]:
+def compute_dynamic_viscosity(temperature: Union[np.ndarray, Real]) -> Union[np.ndarray, Real]:
     """
 
     :param temperature: in K
@@ -129,8 +130,8 @@ def compute_dynamic_viscosity(temperature: Union[np.ndarray, Number]) -> Union[n
 
 # KINEMATIC VISCOSITY =================================================
 def compute_kinematic_viscosity(
-    dynamic_viscosity: Union[np.ndarray, Number], density: Union[np.ndarray, Number]
-) -> Union[np.ndarray, Number]:
+    dynamic_viscosity: Union[np.ndarray, Real], density: Union[np.ndarray, Real]
+) -> Union[np.ndarray, Real]:
     """
 
     :param dynamic_viscosity: in kg/m/s

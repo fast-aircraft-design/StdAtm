@@ -85,10 +85,10 @@ def test_atmosphere():
     )
 
     for values in expectations:
-        # Checking with altitude provided as scalar
+        # Checking with altitude provided as scalar and delta_t as one-element array
         alt = values["alt"] / foot
         assert isinstance(alt, Number)
-        atm = Atmosphere(alt, values["dT"])
+        atm = Atmosphere(alt, np.array([values["dT"]]))
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
         assert values["P"] == pytest.approx(atm.pressure, rel=1e-4)
@@ -96,10 +96,10 @@ def test_atmosphere():
         assert values["kin_visc"] == pytest.approx(atm.kinematic_viscosity, rel=1e-2)
         assert values["SoS"] == pytest.approx(atm.speed_of_sound, rel=1e-3)
 
-        # Checking with altitude provided as one-element list
+        # Checking with altitude and delta_t provided as one-element list
         alt = [values["alt"] / foot]
         assert isinstance(alt, list)
-        atm = Atmosphere(alt, values["dT"])
+        atm = Atmosphere(alt, [values["dT"]])
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
         assert values["P"] == pytest.approx(atm.pressure, rel=1e-4)
@@ -484,6 +484,20 @@ def test_performances_loop_speeds_init_TAS(altitude, benchmark):
         for alt in altitude[::1000]:
             atm = AtmosphereSI(alt)
             atm.true_airspeed = 100.0
+            _ = atm.true_airspeed
+            _ = atm.equivalent_airspeed
+            _ = atm.mach
+            _ = atm.unitary_reynolds
+            _ = atm.dynamic_pressure
+
+    benchmark(func)
+
+
+def test_performances_loop_speeds_init_EAS(altitude, benchmark):
+    def func():
+        for alt in altitude[::1000]:
+            atm = AtmosphereSI(alt)
+            atm.equivalent_airspeed = 100.0
             _ = atm.true_airspeed
             _ = atm.equivalent_airspeed
             _ = atm.mach
