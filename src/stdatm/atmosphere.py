@@ -213,9 +213,7 @@ class Atmosphere:
             if self._mach is not None:
                 self._true_airspeed = compute_tas_from_mach(self._mach, self.speed_of_sound)
             elif self._equivalent_airspeed is not None:
-                self._true_airspeed = compute_tas_from_eas(
-                    self._equivalent_airspeed, self.density, SEA_LEVEL_ATMOSPHERE.density
-                )
+                self._true_airspeed = compute_tas_from_eas(self._equivalent_airspeed, self.density)
             elif self._unitary_reynolds is not None:
                 self._true_airspeed = compute_tas_from_unit_re(
                     self._unitary_reynolds, self.kinematic_viscosity
@@ -245,7 +243,7 @@ class Atmosphere:
         """Equivalent airspeed (EAS) in m/s."""
         if self._equivalent_airspeed is None and self.true_airspeed is not None:
             self._equivalent_airspeed = compute_equivalent_airspeed(
-                self.true_airspeed, self.density, SEA_LEVEL_ATMOSPHERE.density
+                self.true_airspeed, self.density
             )
         return self._equivalent_airspeed
 
@@ -282,8 +280,6 @@ class Atmosphere:
         if self.impact_pressure is not None:
             self._calibrated_airspeed = compute_calibrated_airspeed(
                 self.impact_pressure,
-                SEA_LEVEL_ATMOSPHERE.pressure,
-                SEA_LEVEL_ATMOSPHERE.speed_of_sound,
             )
         return self._calibrated_airspeed
 
@@ -388,6 +384,3 @@ class AtmosphereSI(Atmosphere):
     def altitude(self):
         """Altitude in meters."""
         return self.get_altitude(altitude_in_feet=False)
-
-
-SEA_LEVEL_ATMOSPHERE = Atmosphere(0.0)

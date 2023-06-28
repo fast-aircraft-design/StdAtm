@@ -12,13 +12,22 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from functools import singledispatch
+from functools import lru_cache, singledispatch
 from numbers import Real
 
 import numpy as np
 from scipy.optimize import root, root_scalar
 
-from stdatm.state_parameters import GAMMA
+from stdatm.state_parameters import (
+    GAMMA,
+    SEA_LEVEL_PRESSURE,
+    SEA_LEVEL_TEMPERATURE,
+    compute_density,
+    compute_speed_of_sound,
+)
+
+SEA_LEVEL_DENSITY = compute_density(SEA_LEVEL_PRESSURE, SEA_LEVEL_TEMPERATURE)
+SEA_LEVEL_SPEED_OF_SOUND = compute_speed_of_sound(SEA_LEVEL_TEMPERATURE)
 
 
 # TRUE AIRSPEED =================================================================
@@ -35,15 +44,14 @@ def compute_tas_from_mach(mach, speed_of_sound):
 
 
 # From EAS -----------------------------------------------------------------
-def compute_tas_from_eas(equivalent_airspeed, density, sea_level_density):
+def compute_tas_from_eas(equivalent_airspeed, density):
     """
 
     :param equivalent_airspeed: in m/s
     :param density: in kg/m**3
-    :param sea_level_density: in kg/m**3
     :return: true airspeed in m/s
     """
-    true_airspeed = equivalent_airspeed * np.sqrt(sea_level_density / density)
+    true_airspeed = equivalent_airspeed * np.sqrt(SEA_LEVEL_DENSITY / density)
     return true_airspeed
 
 
@@ -84,15 +92,14 @@ def compute_mach(true_airspeed, speed_of_sound):
 
 
 # EQUIVALENT AIRSPEED =================================================================
-def compute_equivalent_airspeed(true_airspeed, density, sea_level_density):
+def compute_equivalent_airspeed(true_airspeed, density):
     """
 
     :param true_airspeed: in m/s
     :param density: in kg/m**3
-    :param sea_level_density: in kg/m**3
     :return: equivalent airspeed in m/s
     """
-    equivalent_airspeed = true_airspeed * np.sqrt(density / sea_level_density)
+    equivalent_airspeed = true_airspeed * np.sqrt(density / SEA_LEVEL_DENSITY)
     return equivalent_airspeed
 
 
@@ -169,6 +176,7 @@ def compute_impact_pressure(mach, pressure):
 
 
 @compute_impact_pressure.register
+@lru_cache()
 def _(mach: Real, pressure: Real):
     # Implementation for floats
     if mach <= 1.0:
@@ -193,21 +201,21 @@ GAMMA_MINUS_ONE_OVER_TWO_GAMMA = (GAMMA - 1.0) / (2.0 * GAMMA)
 COEFF_HIGH_SPEED_CAS = 6.0**2.5 * 1.2**3.5
 
 
-def _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
-    # To be used when resulting CAS is lower than sea_level_speed_of_sound
-    return sea_level_speed_of_sound * np.sqrt(
-        5.0 * ((impact_pressure / sea_level_pressure + 1.0) ** GAMMA_MINUS_ONE_OVER_GAMMA - 1.0)
+def _compute_cas_low_speed(impact_pressure):
+    # To be used when resulting CAS is lower than SEA_LEVEL_SPEED_OF_SOUND
+    return SEA_LEVEL_SPEED_OF_SOUND * np.sqrt(
+        5.0 * ((impact_pressure / SEA_LEVEL_PRESSURE + 1.0) ** GAMMA_MINUS_ONE_OVER_GAMMA - 1.0)
     )
 
 
-def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
-    # To be used when resulting CAS is greater than sea_level_speed_of_sound
+def _equation_cas_high_speed(cas, impact_pressure):
+    # To be used when resulting CAS is greater than SEA_LEVEL_SPEED_OF_SOUND
     return (
         cas
-        - sea_level_speed_of_sound
+        - SEA_LEVEL_SPEED_OF_SOUND
         * (
-            (impact_pressure / sea_level_pressure + 1.0)
-            * (7.0 * (cas / sea_level_speed_of_sound) ** 2 - 1.0) ** 2.5
+            (impact_pressure / SEA_LEVEL_PRESSURE + 1.0)
+            * (7.0 * (cas / SEA_LEVEL_SPEED_OF_SOUND) ** 2 - 1.0) ** 2.5
             / COEFF_HIGH_SPEED_CAS
         )
         ** GAMMA_MINUS_ONE_OVER_TWO_GAMMA
@@ -215,60 +223,54 @@ def _equation_cas_high_speed(cas, impact_pressure, sea_level_pressure, sea_level
 
 
 @singledispatch
-def _compute_cas_high_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+def _compute_cas_high_speed(impact_pressure):
     solution = root(
         _equation_cas_high_speed,
-        x0=sea_level_speed_of_sound * np.ones_like(impact_pressure),
-        args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
+        x0=SEA_LEVEL_SPEED_OF_SOUND * np.ones_like(impact_pressure),
+        args=(impact_pressure,),
     )
     return solution.x
 
 
 @_compute_cas_high_speed.register
-def _(impact_pressure: Real, sea_level_pressure: Real, sea_level_speed_of_sound: Real):
+@lru_cache()
+def _(impact_pressure: Real):
     solution = root_scalar(
         _equation_cas_high_speed,
-        bracket=[sea_level_speed_of_sound, 10.0 * sea_level_speed_of_sound],
-        args=(impact_pressure, sea_level_pressure, sea_level_speed_of_sound),
+        bracket=[SEA_LEVEL_SPEED_OF_SOUND, 10.0 * SEA_LEVEL_SPEED_OF_SOUND],
+        args=(impact_pressure,),
     )
     return solution.root
 
 
 @singledispatch
-def compute_calibrated_airspeed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound):
+def compute_calibrated_airspeed(impact_pressure):
     """
 
     :param impact_pressure: in Pa
-    :param sea_level_pressure: in Pa
-    :param sea_level_speed_of_sound: in m/s
     :return: calibrated airspeed in m/s
     """
     # Implementation for numpy arrays
     impact_pressure = np.asarray(impact_pressure)
 
-    calibrated_airspeed = np.asarray(
-        _compute_cas_low_speed(impact_pressure, sea_level_pressure, sea_level_speed_of_sound)
-    )
+    calibrated_airspeed = np.asarray(_compute_cas_low_speed(impact_pressure))
 
-    idx_high_speed = calibrated_airspeed > sea_level_speed_of_sound
+    idx_high_speed = calibrated_airspeed > SEA_LEVEL_SPEED_OF_SOUND
     if np.any(idx_high_speed):
         calibrated_airspeed[idx_high_speed] = _compute_cas_high_speed(
-            impact_pressure[idx_high_speed], sea_level_pressure, sea_level_speed_of_sound
+            impact_pressure[idx_high_speed]
         )
 
     return calibrated_airspeed
 
 
 @compute_calibrated_airspeed.register
-def _(impact_pressure: Real, sea_level_pressure: Real, sea_level_speed_of_sound: Real):
+@lru_cache()
+def _(impact_pressure: Real):
     # Implementation for floats
-    calibrated_airspeed = _compute_cas_low_speed(
-        impact_pressure, sea_level_pressure, sea_level_speed_of_sound
-    )
+    calibrated_airspeed = _compute_cas_low_speed(impact_pressure)
 
-    if calibrated_airspeed > sea_level_speed_of_sound:
-        calibrated_airspeed = _compute_cas_high_speed(
-            impact_pressure, sea_level_pressure, sea_level_speed_of_sound
-        )
+    if calibrated_airspeed > SEA_LEVEL_SPEED_OF_SOUND:
+        calibrated_airspeed = _compute_cas_high_speed(impact_pressure)
 
     return calibrated_airspeed
