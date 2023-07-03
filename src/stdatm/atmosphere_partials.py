@@ -82,8 +82,6 @@ class AtmosphereWithPartials(Atmosphere):
                                  it should be provided in meters.
         """
 
-        # Can't use **kwargs because we need to define unit_coeff as a an attribute for the
-        # computation of partials
         super().__init__(altitude=altitude, delta_t=delta_t, altitude_in_feet=altitude_in_feet)
 
         self._unit_coeff = foot if altitude_in_feet else 1.0
@@ -104,11 +102,9 @@ class AtmosphereWithPartials(Atmosphere):
         """
 
         if self._partials_temperature_altitude is None:
-            self._partials_temperature_altitude = compute_partial_temperature(
-                self._altitude, self._unit_coeff
-            )
+            self._partials_temperature_altitude = compute_partial_temperature(self._altitude)
 
-        return self._partials_temperature_altitude
+        return self._partials_temperature_altitude * self._unit_coeff
 
     @property
     def partial_pressure_altitude(self) -> Union[float, np.ndarray]:
@@ -118,11 +114,9 @@ class AtmosphereWithPartials(Atmosphere):
         """
 
         if self._partials_pressure_altitude is None:
-            self._partials_pressure_altitude = compute_partial_pressure(
-                self._altitude, self._unit_coeff
-            )
+            self._partials_pressure_altitude = compute_partial_pressure(self._altitude)
 
-        return self._partials_pressure_altitude
+        return self._partials_pressure_altitude * self._unit_coeff
 
     @property
     def partial_density_altitude(self) -> Union[float, np.ndarray]:

@@ -29,12 +29,11 @@ from .state_parameters import (
 
 # PARTIAL TEMPERATURE =================================================================
 @singledispatch
-def compute_partial_temperature(altitude, unit_coeff) -> np.ndarray:
+def compute_partial_temperature(altitude) -> np.ndarray:
     """
     :param altitude: in m
-    :param unit_coeff: coefficient to adjust the partial computation if the altitude is in feet
 
-    :return: Partial of temperature in K with respect to altitude
+    :return: Partial of temperature in K with respect to altitude in m
     """
     # Implementation for numpy arrays
     idx_tropo = altitude < TROPOPAUSE
@@ -44,28 +43,31 @@ def compute_partial_temperature(altitude, unit_coeff) -> np.ndarray:
     partial_temperature = np.zeros_like(altitude)
     partial_temperature[idx_tropo] = -0.0065
 
-    return partial_temperature * unit_coeff
+    return partial_temperature
 
 
 @compute_partial_temperature.register
 @lru_cache()
-def _(altitude: Real, unit_coeff) -> float:
+def _(altitude: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         partial_temperature = -0.0065
     else:
         partial_temperature = 0.0
-    return partial_temperature * unit_coeff
+    return partial_temperature
 
 
 # PARTIAL PRESSURE =================================================================
+COEFF_PARTIAL_PRESSURE_1 = -5.25587611 / 44330.78
+COEFF_PARTIAL_PRESSURE_2 = -0.0001576883 * 22632.0 * math.log(2.718281)
+
+
 @singledispatch
-def compute_partial_pressure(altitude, unit_coeff) -> np.ndarray:
+def compute_partial_pressure(altitude) -> np.ndarray:
     """
     :param altitude: in m
-    :param unit_coeff: coefficient to adjust the partial computation if the altitude is in feet
 
-    :return: Partial of pressure in Pa with respect to altitude
+    :return: Partial of pressure in Pa with respect to altitude in m
     """
     # Implementation for numpy arrays
     idx_tropo = altitude < TROPOPAUSE
@@ -73,37 +75,32 @@ def compute_partial_pressure(altitude, unit_coeff) -> np.ndarray:
 
     partial_pressure = np.empty_like(altitude)
     partial_pressure[idx_tropo] = (
-        -5.25587611
-        / 44330.78
+        COEFF_PARTIAL_PRESSURE_1
         * SEA_LEVEL_PRESSURE
         * (1 - (altitude[idx_tropo] / 44330.78)) ** 4.25587611
     )
-    partial_pressure[idx_strato] = (
-        -0.0001576883
-        * 22632.0
-        * math.log(2.718281)
-        * 2.718281 ** (1.7345725 - 0.0001576883 * altitude[idx_strato])
+    partial_pressure[idx_strato] = COEFF_PARTIAL_PRESSURE_2 * 2.718281 ** (
+        1.7345725 - 0.0001576883 * altitude[idx_strato]
     )
 
-    return partial_pressure * unit_coeff
+    return partial_pressure
 
 
 @compute_partial_pressure.register
 @lru_cache()
-def _(altitude: Real, unit_coeff) -> float:
+def _(altitude: Real) -> float:
     # Implementation for floats
     if altitude < TROPOPAUSE:
         partial_temperature = (
-            -5.25587611 / 44330.78 * SEA_LEVEL_PRESSURE * (1 - (altitude / 44330.78)) ** 4.25587611
+            COEFF_PARTIAL_PRESSURE_1
+            * SEA_LEVEL_PRESSURE
+            * (1 - (altitude / 44330.78)) ** 4.25587611
         )
     else:
-        partial_temperature = (
-            -0.0001576883
-            * 22632.0
-            * math.log(2.718281)
-            * 2.718281 ** (1.7345725 - 0.0001576883 * altitude)
+        partial_temperature = COEFF_PARTIAL_PRESSURE_2 * 2.718281 ** (
+            1.7345725 - 0.0001576883 * altitude
         )
-    return partial_temperature * unit_coeff
+    return partial_temperature
 
 
 # PARTIAL DENSITY =================================================================
@@ -131,8 +128,6 @@ def compute_partial_density(
         / temperature**2.0
     )
 
-    # Unit_coeff is not required because it is already included in the computation of the
-    # temperature and pressure partial
     return partial_density
 
 
@@ -157,6 +152,9 @@ def compute_partial_speed_of_sound(
 
 
 # DYNAMIC VISCOSITY =================================================
+COEFF_PARTIAL_MU_1 = 0.000017894 * (SEA_LEVEL_TEMPERATURE + 110.4) / SEA_LEVEL_TEMPERATURE**1.5
+
+
 def compute_partial_dynamic_viscosity(
     temperature: Union[np.ndarray, Real],
     partial_temperature_altitude: Union[np.ndarray, Real],
@@ -170,9 +168,7 @@ def compute_partial_dynamic_viscosity(
     """
 
     partial_dynamic_viscosity = (
-        0.000017894
-        * (SEA_LEVEL_TEMPERATURE + 110.4)
-        / SEA_LEVEL_TEMPERATURE**1.5
+        COEFF_PARTIAL_MU_1
         * (0.5 * temperature**1.5 + 110.4 * 1.5 * temperature**0.5)
         / (temperature + 110.4) ** 2.0
         * partial_temperature_altitude
