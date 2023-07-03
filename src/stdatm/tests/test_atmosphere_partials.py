@@ -41,25 +41,19 @@ def test_performances_temperature_partials_array(altitude, benchmark):
 
 
 def test_temperature_partials_against_fd(altitude):
-    atm_minus = get_atmosphere_minus_step(altitude)
-    atm_plus = get_atmosphere_plus_step(altitude)
-
     atm = get_atmosphere(altitude, False)
 
     computed_partials = atm.partial_temperature_altitude
-    verify_partials = (atm_plus.temperature - atm_minus.temperature) / (2.0 * STEP)
+    verify_partials = get_fd_partial(altitude, "temperature")
 
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
 
 
 def test_temperature_partials_against_fd_ft(altitude):
-    atm_minus = get_atmosphere_minus_step_ft(altitude)
-    atm_plus = get_atmosphere_plus_step_ft(altitude)
-
     atm = get_atmosphere(altitude / foot, True)
 
     computed_partials = atm.partial_temperature_altitude
-    verify_partials = (atm_plus.temperature - atm_minus.temperature) / (2.0 * STEP)
+    verify_partials = get_fd_partial(altitude / foot, "temperature", True)
 
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
 
