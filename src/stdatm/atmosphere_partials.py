@@ -62,12 +62,16 @@ class AtmosphereWithPartials(Atmosphere):
 
         >>> from stdatm import AtmosphereWithPartials
         >>> pressure = AtmosphereWithPartials(30000).pressure # pressure at 30,000 feet, dISA = 0 K
-        >>> partials_pressure_altitude = AtmosphereWithPartials(30000).partial_pressure_altitude # pressure at 30,000 feet, dISA = 0 K
+        >>> # pressure at 30,000 feet, dISA = 0 K
+        >>> partials_pressure_altitude = AtmosphereWithPartials(30000).partial_pressure_altitude
 
-        >>> atm = AtmosphereWithPartials([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
-        >>> atm.partial_pressure_altitude # derivative of pressures with respect to altitude for all defined altitudes
+        >>> # init for alt. 0, 10,000 and 30,000 feet
+        >>> atm = AtmosphereWithPartials([0.0,10000.0,30000.0])
+        >>> # derivative of pressures with respect to altitude for all defined altitudes
+        >>> atm.partial_pressure_altitude
         array([-3.66160356, -2.70401861, -1.36992549])
-        >>> atm.partial_dynamic_viscosity_altitude # derivative of dynamic viscosities with respect to altitude for all defined altitudes
+        >>> # derivative of dynamic viscosities with respect to altitude for all defined altitudes
+        >>> atm.partial_dynamic_viscosity_altitude
         array([-9.55961630e-11, -9.88873356e-11, -1.06349854e-10])
     """
 
