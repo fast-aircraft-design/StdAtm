@@ -59,7 +59,7 @@ class AtmospherePartials(Atmosphere):
     Usage:
 
     .. code-block::
-    
+
         >>> from stdatm import AtmospherePartials
         >>> pressure = AtmospherePartials(30000).pressure # pressure at 30,000 feet, dISA = 0 K
         >>> partials_pressure_altitude = AtmospherePartials(30000).partial_pressure_altitude # pressure at 30,000 feet, dISA = 0 K
