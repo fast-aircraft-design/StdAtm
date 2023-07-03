@@ -23,24 +23,13 @@ def get_atmosphere(altitude, altitude_in_feet):
     return atm_part
 
 
-def get_atmosphere_minus_step(altitude):
-    atm = Atmosphere(altitude - STEP, altitude_in_feet=False)
-    return atm
+def get_fd_partial(altitude, parameter_name, altitude_in_feet=False):
+    atm_minus_step = Atmosphere(altitude - STEP, altitude_in_feet=altitude_in_feet)
+    atm_plus_step = Atmosphere(altitude + STEP, altitude_in_feet=altitude_in_feet)
+    return (getattr(atm_plus_step, parameter_name) - getattr(atm_minus_step, parameter_name)) / (
+        2.0 * STEP
+    )
 
-
-def get_atmosphere_plus_step(altitude):
-    atm = Atmosphere(altitude + STEP, altitude_in_feet=False)
-    return atm
-
-
-def get_atmosphere_minus_step_ft(altitude):
-    atm = Atmosphere(altitude / foot - STEP, altitude_in_feet=True)
-    return atm
-
-
-def get_atmosphere_plus_step_ft(altitude):
-    atm = Atmosphere(altitude / foot + STEP, altitude_in_feet=True)
-    return atm
 
 
 def test_performances_temperature_partials_array(altitude, benchmark):
