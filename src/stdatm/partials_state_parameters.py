@@ -18,13 +18,13 @@ from typing import Union
 
 import math
 import numpy as np
-from scipy.constants import R, atmosphere
 
-AIR_MOLAR_MASS = 28.9647e-3
-AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
-SEA_LEVEL_PRESSURE = atmosphere
-SEA_LEVEL_TEMPERATURE = 288.15
-TROPOPAUSE = 11000.0
+from .state_parameters import (
+    SEA_LEVEL_PRESSURE,
+    SEA_LEVEL_TEMPERATURE,
+    TROPOPAUSE,
+    AIR_GAS_CONSTANT,
+)
 
 
 # PARTIAL TEMPERATURE =================================================================
@@ -159,12 +159,10 @@ def compute_partial_speed_of_sound(
 # DYNAMIC VISCOSITY =================================================
 def compute_partial_dynamic_viscosity(
     temperature: Union[np.ndarray, Real],
-    sea_level_temperature: Real,
     partial_temperature_altitude: Union[np.ndarray, Real],
 ) -> Union[np.ndarray, Real]:
     """
     :param temperature: in K
-    :param sea_level_temperature: in K
     :param partial_temperature_altitude: derivative of the temperature in K with respect to the
                                          altitude
 
@@ -173,8 +171,8 @@ def compute_partial_dynamic_viscosity(
 
     partial_dynamic_viscosity = (
         0.000017894
-        * (sea_level_temperature + 110.4)
-        / sea_level_temperature**1.5
+        * (SEA_LEVEL_TEMPERATURE + 110.4)
+        / SEA_LEVEL_TEMPERATURE**1.5
         * (0.5 * temperature**1.5 + 110.4 * 1.5 * temperature**0.5)
         / (temperature + 110.4) ** 2.0
         * partial_temperature_altitude

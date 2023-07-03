@@ -18,7 +18,7 @@ with respect to altitude.
 from typing import Sequence, Union
 
 import numpy as np
-from scipy.constants import R, atmosphere, foot
+from scipy.constants import foot
 
 from .atmosphere import Atmosphere
 
@@ -30,12 +30,6 @@ from .partials_state_parameters import (
     compute_partial_dynamic_viscosity,
     compute_partial_kinematic_viscosity,
 )
-
-AIR_MOLAR_MASS = 28.9647e-3
-AIR_GAS_CONSTANT = R / AIR_MOLAR_MASS
-SEA_LEVEL_PRESSURE = atmosphere
-SEA_LEVEL_TEMPERATURE = 288.15
-TROPOPAUSE = 11000
 
 
 class AtmosphereWithPartials(Atmosphere):
@@ -52,9 +46,9 @@ class AtmosphereWithPartials(Atmosphere):
     - if altitude is given as nD numpy array, returned values will be nD numpy
       arrays
 
-    The AtmosphereWithPartials class inherits from the Atmosphere class and thus retains its usages. It
-    however adds the computation of the partial derivatives of all state properties with respect to
-    the altitude.
+    The AtmosphereWithPartials class inherits from the Atmosphere class and thus retains its usages.
+    It however adds the computation of the partial derivatives of all state properties with respect
+    to the altitude.
 
     Usage:
 
@@ -172,7 +166,6 @@ class AtmosphereWithPartials(Atmosphere):
         if self._partials_dynamic_viscosity_altitude is None:
             self._partials_dynamic_viscosity_altitude = compute_partial_dynamic_viscosity(
                 self.temperature,
-                SEA_LEVEL_ATMOSPHERE.temperature,
                 self.partial_temperature_altitude,
             )
 
@@ -194,6 +187,3 @@ class AtmosphereWithPartials(Atmosphere):
             )
 
         return self._partials_kinematic_viscosity_altitude
-
-
-SEA_LEVEL_ATMOSPHERE = Atmosphere(0.0)
