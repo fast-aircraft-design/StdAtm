@@ -14,7 +14,7 @@
 from pkg_resources import DistributionNotFound, get_distribution
 
 from .atmosphere import Atmosphere, AtmosphereSI  # noqa: F401
-from .atmosphere_partials import AtmospherePartials  # noqa: F401
+from .atmosphere_partials import AtmosphereWithPartials  # noqa: F401
 
 try:
     # Change here if project is renamed and does not equal the package name

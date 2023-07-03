@@ -7,7 +7,7 @@ import pytest
 from numpy.testing import assert_allclose
 from scipy.constants import foot
 
-from ..atmosphere_partials import AtmospherePartials
+from ..atmosphere_partials import AtmosphereWithPartials
 from ..atmosphere import Atmosphere
 
 
@@ -17,7 +17,7 @@ def altitude():
 
 
 def get_atmosphere(altitude, altitude_in_feet):
-    atm_part = AtmospherePartials(altitude, 0.0, altitude_in_feet)
+    atm_part = AtmosphereWithPartials(altitude, 0.0, altitude_in_feet)
     return atm_part
 
 

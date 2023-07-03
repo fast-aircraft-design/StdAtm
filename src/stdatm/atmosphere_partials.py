@@ -38,7 +38,7 @@ SEA_LEVEL_TEMPERATURE = 288.15
 TROPOPAUSE = 11000
 
 
-class AtmospherePartials(Atmosphere):
+class AtmosphereWithPartials(Atmosphere):
     """
     Implementation of International Standard Atmosphere for troposphere and stratosphere with
     derivatives of state parameters with respect to altitude.
@@ -52,7 +52,7 @@ class AtmospherePartials(Atmosphere):
     - if altitude is given as nD numpy array, returned values will be nD numpy
       arrays
 
-    The AtmospherePartials class inherits from the Atmosphere class and thus retains its usages. It
+    The AtmosphereWithPartials class inherits from the Atmosphere class and thus retains its usages. It
     however adds the computation of the partial derivatives of all state properties with respect to
     the altitude.
 
@@ -60,11 +60,11 @@ class AtmospherePartials(Atmosphere):
 
     .. code-block::
 
-        >>> from stdatm import AtmospherePartials
-        >>> pressure = AtmospherePartials(30000).pressure # pressure at 30,000 feet, dISA = 0 K
-        >>> partials_pressure_altitude = AtmospherePartials(30000).partial_pressure_altitude # pressure at 30,000 feet, dISA = 0 K
+        >>> from stdatm import AtmosphereWithPartials
+        >>> pressure = AtmosphereWithPartials(30000).pressure # pressure at 30,000 feet, dISA = 0 K
+        >>> partials_pressure_altitude = AtmosphereWithPartials(30000).partial_pressure_altitude # pressure at 30,000 feet, dISA = 0 K
 
-        >>> atm = AtmospherePartials([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
+        >>> atm = AtmosphereWithPartials([0.0,10000.0,30000.0]) # init for alt. 0, 10,000 and 30,000 feet
         >>> atm.partial_pressure_altitude # derivative of pressures with respect to altitude for all defined altitudes
         array([-3.66160356, -2.70401861, -1.36992549])
         >>> atm.partial_dynamic_viscosity_altitude # derivative of dynamic viscosities with respect to altitude for all defined altitudes
