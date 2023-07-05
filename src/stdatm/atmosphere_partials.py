@@ -21,14 +21,13 @@ import numpy as np
 from scipy.constants import foot
 
 from .atmosphere import Atmosphere
-
 from .partials_state_parameters import (
-    compute_partial_temperature,
-    compute_partial_pressure,
     compute_partial_density,
-    compute_partial_speed_of_sound,
     compute_partial_dynamic_viscosity,
     compute_partial_kinematic_viscosity,
+    compute_partial_pressure,
+    compute_partial_speed_of_sound,
+    compute_partial_temperature,
 )
 
 
@@ -102,9 +101,11 @@ class AtmosphereWithPartials(Atmosphere):
         """
 
         if self._partials_temperature_altitude is None:
-            self._partials_temperature_altitude = compute_partial_temperature(self._altitude)
+            self._partials_temperature_altitude = (
+                compute_partial_temperature(self._altitude) * self._unit_coeff
+            )
 
-        return self._partials_temperature_altitude * self._unit_coeff
+        return self._partials_temperature_altitude
 
     @property
     def partial_pressure_altitude(self) -> Union[float, np.ndarray]:
@@ -114,9 +115,11 @@ class AtmosphereWithPartials(Atmosphere):
         """
 
         if self._partials_pressure_altitude is None:
-            self._partials_pressure_altitude = compute_partial_pressure(self._altitude)
+            self._partials_pressure_altitude = (
+                compute_partial_pressure(self._altitude) * self._unit_coeff
+            )
 
-        return self._partials_pressure_altitude * self._unit_coeff
+        return self._partials_pressure_altitude
 
     @property
     def partial_density_altitude(self) -> Union[float, np.ndarray]:
