@@ -17,9 +17,9 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Physics"
 ]
 
@@ -29,9 +29,9 @@ packages = [
 exclude = ["**/tests/**"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-numpy = "^1.21.1"
-scipy = "^1.6.1"
+python = "^3.8"
+numpy = "^1.22.0"
+scipy = "^1.9.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.0"
