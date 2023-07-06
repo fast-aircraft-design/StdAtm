@@ -156,6 +156,10 @@ def test_speed_parameters_basic():
     with pytest.raises(RuntimeError):
         atm.true_airspeed = [[100, 200]]
 
+    atm = Atmosphere(10000.0)
+    atm.true_airspeed = 100.0
+    assert isinstance(atm.true_airspeed, float)
+
 
 def test_speed_conversions_with_broadcast():
     """Tests for speed conversions with different but compatible shapes for altitude and TAS"""
