@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from numbers import Number
+from numbers import Real
 
 import numpy as np
 import pytest
@@ -87,7 +87,7 @@ def test_atmosphere():
     for values in expectations:
         # Checking with altitude provided as scalar and delta_t as one-element array
         alt = values["alt"] / foot
-        assert isinstance(alt, Number)
+        assert isinstance(alt, Real)
         atm = Atmosphere(alt, np.array([values["dT"]]))
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
