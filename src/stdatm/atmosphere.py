@@ -15,7 +15,7 @@ Simple implementation of International Standard Atmosphere.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
-from numbers import Number
+from numbers import Real
 from typing import Sequence, Union
 
 import numpy as np
@@ -116,7 +116,7 @@ class Atmosphere:
 
         # For convenience, let's have altitude as numpy arrays and in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
-        if not isinstance(altitude, Number):
+        if not isinstance(altitude, Real):
             altitude = np.asarray(altitude)
         self._altitude = altitude * unit_coeff
 
@@ -153,7 +153,7 @@ class Atmosphere:
     @delta_t.setter
     def delta_t(self, value: float):
         # Let's ensure it is not a one-element array that would crash lru_cache
-        if isinstance(value, Number):
+        if isinstance(value, Real):
             self._delta_t = value
         else:
             self._delta_t = np.asarray(value).item()
@@ -316,6 +316,9 @@ class Atmosphere:
         return self._adapt_shape(value)
 
     def _adapt_shape(self, value):
+        if isinstance(value, Real):
+            return value
+
         if value is not None:
             value = np.asarray(value)
             if np.size(value) > 1:

@@ -12,7 +12,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from numbers import Number
+from numbers import Real
 
 import numpy as np
 import pytest
@@ -87,7 +87,7 @@ def test_atmosphere():
     for values in expectations:
         # Checking with altitude provided as scalar and delta_t as one-element array
         alt = values["alt"] / foot
-        assert isinstance(alt, Number)
+        assert isinstance(alt, Real)
         atm = Atmosphere(alt, np.array([values["dT"]]))
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
@@ -155,6 +155,10 @@ def test_speed_parameters_basic():
     atm = Atmosphere([0, 5000, 10000])
     with pytest.raises(RuntimeError):
         atm.true_airspeed = [[100, 200]]
+
+    atm = Atmosphere(10000.0)
+    atm.true_airspeed = 100.0
+    assert isinstance(atm.true_airspeed, float)
 
 
 def test_speed_conversions_with_broadcast():

@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 0.3.1
+=============
+- Fixed:
+    - speed values were converted to numpy arrays, even if provided as scalars. (#17)
 
 Version 0.3.0
 =============
