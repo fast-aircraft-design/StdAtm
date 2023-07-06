@@ -1,14 +1,23 @@
-# This file is part of FAST-OAD_CS23-HE : A framework for rapid Overall Aircraft Design of Hybrid
-# Electric Aircraft.
-# Copyright (C) 2022 ISAE-SUPAERO
+#  This file is part of StdAtm
+#  Copyright (C) 2023 ONERA & ISAE-SUPAERO
+#  StdAtm is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 from scipy.constants import foot
 
-from ..atmosphere_partials import AtmosphereWithPartials
 from ..atmosphere import Atmosphere
+from ..atmosphere_partials import AtmosphereWithPartials
 
 
 @pytest.fixture(scope="session")
@@ -185,7 +194,7 @@ def test_kinematic_viscosity_partials_against_fd_ft(altitude):
     assert_allclose(computed_partials, verify_partials, rtol=5e-5)
 
 
-def test_performances_reask_array(altitude, benchmark):
+def test_performances_reask_array_partials(altitude, benchmark):
     atm = get_atmosphere(altitude, False)
     _ = atm.partial_temperature_altitude
     _ = atm.partial_pressure_altitude
