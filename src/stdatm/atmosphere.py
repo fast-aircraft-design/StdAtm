@@ -15,7 +15,7 @@ Simple implementation of International Standard Atmosphere.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
-from numbers import Number
+from numbers import Number, Real
 from typing import Sequence, Union
 
 import numpy as np
@@ -316,6 +316,9 @@ class Atmosphere:
         return self._adapt_shape(value)
 
     def _adapt_shape(self, value):
+        if isinstance(value, Real):
+            return value
+
         if value is not None:
             value = np.asarray(value)
             if np.size(value) > 1:
