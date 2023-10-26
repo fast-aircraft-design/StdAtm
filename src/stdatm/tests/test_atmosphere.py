@@ -150,6 +150,17 @@ def test_atmosphere():
         # Additional check for altitude property
         assert expectations["alt"][idx] == pytest.approx(atm.altitude, rel=1e-3)
 
+    # Check with arrays
+    atm = AtmosphereSI(expectations["alt"], expectations["dT"])
+    assert_allclose(expectations["T"], atm.temperature, rtol=1e-4)
+    assert_allclose(expectations["rho"], atm.density, rtol=1e-3)
+    assert_allclose(expectations["P"], atm.pressure, rtol=1e-4)
+    assert_allclose(expectations["dyn_visc"], atm.dynamic_viscosity, rtol=1e-2)
+    assert_allclose(expectations["kin_visc"], atm.kinematic_viscosity, rtol=1e-2)
+    assert_allclose(expectations["SoS"], atm.speed_of_sound, rtol=1e-3)
+    # Additional check for altitude property
+    assert_allclose(expectations["alt"], atm.altitude, rtol=1e-3)
+
 
 def test_speed_parameters_basic():
     atm = Atmosphere([0, 5000, 10000])
