@@ -85,10 +85,11 @@ def test_atmosphere():
     )
 
     for values in expectations:
-        # Checking with altitude provided as scalar and delta_t as one-element array
+        # Checking with altitude and delta_t provided as 0-D arrays
+        # (was crashing @singledispatch)
         alt = values["alt"] / foot
         assert isinstance(alt, Real)
-        atm = Atmosphere(alt, np.array([values["dT"]]))
+        atm = Atmosphere(np.array(alt), np.array(values["dT"]))
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
         assert values["P"] == pytest.approx(atm.pressure, rel=1e-4)
