@@ -42,7 +42,7 @@ jobs:
 
       - name: Unit tests
         run: |
-          poetry run pytest src
+          poetry run pytest src --cov stdatm
           poetry run coverage xml  # for sending coverage report
         shell: bash
 

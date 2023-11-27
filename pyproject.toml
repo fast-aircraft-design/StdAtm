@@ -67,7 +67,7 @@ line-length = 100
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cov stdatm --cov-report term-missing --cov-report html --verbose --benchmark-disable --benchmark-autosave"
+addopts = "--cov-report term-missing --cov-report html --verbose --benchmark-disable --benchmark-autosave  --benchmark-calibration-precision=100 --benchmark-max-time=2.0"
 testpaths = ["src"]
 norecursedirs = ["dist", "build", ".tox"]
 
