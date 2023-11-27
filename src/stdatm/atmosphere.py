@@ -112,11 +112,12 @@ class Atmosphere:
                                  it should be provided in meters.
         """
 
-        # For convenience, let's have altitude as numpy arrays and in meters in all cases
+        # For convenience, let's have altitude in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
-        if not isinstance(altitude, Real):
-            altitude = np.asarray(altitude)
-        self._altitude = altitude * unit_coeff
+        try:
+            self._altitude = altitude * unit_coeff
+        except TypeError:  # here altitude is non-array sequence
+            self._altitude = np.asarray(altitude) * unit_coeff
         self.delta_t = delta_t
 
         # Outputs
