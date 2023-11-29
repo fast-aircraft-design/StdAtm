@@ -102,7 +102,7 @@ class Atmosphere:
     def __init__(
         self,
         altitude: Union[float, Sequence[float]],
-        delta_t: float = 0.0,
+        delta_t: Union[float, Sequence[float]] = 0.0,
         altitude_in_feet: bool = True,
     ):
         """
@@ -112,13 +112,13 @@ class Atmosphere:
                                  it should be provided in meters.
         """
 
-        self.delta_t = delta_t
-
-        # For convenience, let's have altitude as numpy arrays and in meters in all cases
+        # For convenience, let's have altitude in meters in all cases
         unit_coeff = foot if altitude_in_feet else 1.0
-        if not isinstance(altitude, Real):
-            altitude = np.asarray(altitude)
-        self._altitude = altitude * unit_coeff
+        try:
+            self._altitude = altitude * unit_coeff
+        except TypeError:  # here altitude is non-array sequence
+            self._altitude = np.asarray(altitude) * unit_coeff
+        self.delta_t = delta_t
 
         # Outputs
         self._temperature = None
@@ -146,23 +146,23 @@ class Atmosphere:
         return self._altitude
 
     @property
-    def delta_t(self) -> float:
+    def delta_t(self) -> Union[float, Sequence[float]]:
         """Temperature increment applied to whole temperature profile."""
         return self._delta_t
 
     @delta_t.setter
     def delta_t(self, value: float):
-        # Let's ensure it is not a one-element array that would crash lru_cache
-        if isinstance(value, Real):
-            self._delta_t = value
-        else:
-            self._delta_t = np.asarray(value).item()
+        self._delta_t = self._adapt_shape(value)
+        if not isinstance(self._delta_t, Real):
+            # @singledispatch will fail on temperature if delta_t is an array
+            # but altitude is not.
+            self._altitude = np.asarray(self._altitude)
 
     @property
     def temperature(self) -> Union[float, np.ndarray]:
         """Temperature in K."""
         if self._temperature is None:
-            self._temperature = compute_temperature(self._altitude, self.delta_t)
+            self._temperature = compute_temperature(self._altitude, self._delta_t)
 
         return self._temperature
 

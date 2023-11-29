@@ -42,10 +42,10 @@ def compute_temperature(altitude, delta_t) -> np.ndarray:
     idx_strato = np.logical_not(idx_tropo)
 
     temperature = np.empty_like(altitude)
-    temperature[idx_tropo] = SEA_LEVEL_TEMPERATURE - 0.0065 * altitude[idx_tropo] + delta_t
-    temperature[idx_strato] = 216.65 + delta_t
+    temperature[idx_tropo] = SEA_LEVEL_TEMPERATURE - 0.0065 * altitude[idx_tropo]
+    temperature[idx_strato] = 216.65
 
-    return temperature
+    return temperature + delta_t
 
 
 @compute_temperature.register

@@ -85,10 +85,11 @@ def test_atmosphere():
     )
 
     for values in expectations:
-        # Checking with altitude provided as scalar and delta_t as one-element array
+        # Checking with altitude and delta_t provided as 0-D arrays
+        # (was crashing @singledispatch)
         alt = values["alt"] / foot
         assert isinstance(alt, Real)
-        atm = Atmosphere(alt, np.array([values["dT"]]))
+        atm = Atmosphere(np.array(alt), np.array(values["dT"]))
         assert values["T"] == pytest.approx(atm.temperature, rel=1e-4)
         assert values["rho"] == pytest.approx(atm.density, rel=1e-3)
         assert values["P"] == pytest.approx(atm.pressure, rel=1e-4)
@@ -149,6 +150,17 @@ def test_atmosphere():
         assert expectations["SoS"][idx] == pytest.approx(atm.speed_of_sound, rel=1e-3)
         # Additional check for altitude property
         assert expectations["alt"][idx] == pytest.approx(atm.altitude, rel=1e-3)
+
+    # Check with arrays
+    atm = AtmosphereSI(expectations["alt"], expectations["dT"])
+    assert_allclose(expectations["T"], atm.temperature, rtol=1e-4)
+    assert_allclose(expectations["rho"], atm.density, rtol=1e-3)
+    assert_allclose(expectations["P"], atm.pressure, rtol=1e-4)
+    assert_allclose(expectations["dyn_visc"], atm.dynamic_viscosity, rtol=1e-2)
+    assert_allclose(expectations["kin_visc"], atm.kinematic_viscosity, rtol=1e-2)
+    assert_allclose(expectations["SoS"], atm.speed_of_sound, rtol=1e-3)
+    # Additional check for altitude property
+    assert_allclose(expectations["alt"], atm.altitude, rtol=1e-3)
 
 
 def test_speed_parameters_basic():
