@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.0
+=============
+- Changed:
+    - delta_t attribute can now be an array, like other attributes. (#18)
+
 Version 0.3.1
 =============
 - Fixed:
