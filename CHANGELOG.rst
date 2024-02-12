@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.1
+=============
+- Fixed:
+    - Removed usage of deprecated pkg_resources. (#20)
+
 Version 0.4.0
 =============
 - Changed:
