@@ -17,6 +17,15 @@ jobs:
       matrix:
         python-version: [ "3.8", "3.9", "3.10" ]
         os: [ ubuntu-latest, windows-latest, macos-latest ]
+        # Exceptions:
+        # - Python 3.8 and 3.9 is on macos-13 but not macos-latest (macos-14-arm64)
+        #   https://github.com/actions/setup-python/issues/696#issuecomment-1637587760
+        exclude:
+        - { python-version: "3.8", os: "macos-latest" }
+        - { python-version: "3.9", os: "macos-latest" }
+        include:
+        - { python-version: "3.8", os: "macos-13" }
+        - { python-version: "3.9", os: "macos-13" }
 
     steps:
       - uses: actions/checkout@v4
@@ -45,9 +54,3 @@ jobs:
           poetry run pytest src --cov stdatm
           poetry run coverage xml  # for sending coverage report
         shell: bash
-
-      - name: Publish code coverage on Code Climate
-        uses: paambaati/codeclimate-action@v3.2.0
-        if: ${{ runner.os == 'Linux' && matrix.python-version == '3.9' }} # This action runs only on Linux
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.codeclimate }}
