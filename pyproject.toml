@@ -20,6 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics"
 ]
 
@@ -30,8 +32,16 @@ exclude = ["**/tests/**"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = "^1.22.0"
-scipy = "^1.9.3"
+numpy = [
+    { version = ">=1.22.0, <1.25", python = "~3.8" },
+    { version = "^1.23.2", python = ">=3.9, <3.12" },
+    { version = "^1.26", python = "^3.12" },
+]
+scipy = [
+    { version = ">=1.9.3, <1.11", python = "~3.8" },
+    { version = "^1.10", python = ">=3.9, <3.12" },
+    { version = "^1.11.2", python = "^3.12" },
+]
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.0"
