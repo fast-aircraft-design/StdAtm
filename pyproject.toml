@@ -44,9 +44,9 @@ scipy = [
 ]
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.0"
-pytest-cov = "^3.0"
-coverage = { version = "^6.0", extras = ["toml"] }
+pytest = "^8.0"
+pytest-cov = "^5.0"
+coverage = { version = "^7.0", extras = ["toml"] }
 
 [tool.poetry.group.benchmark.dependencies]
 pytest-profiling = "^1.7.0"
@@ -76,7 +76,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 line-length = 100
 
 [tool.pytest.ini_options]
-minversion = "6.0"
+minversion = "8.0"
 addopts = "--cov-report term-missing --cov-report html --verbose --benchmark-disable --benchmark-autosave  --benchmark-calibration-precision=100 --benchmark-max-time=2.0"
 testpaths = ["src"]
 norecursedirs = ["dist", "build", ".tox"]
