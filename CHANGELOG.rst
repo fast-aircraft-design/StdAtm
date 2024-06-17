@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.3
+=============
+- Updated:
+    - Now Python 3.11 and 3.12, and Numpy 2.0 are officially supported. (#21)
+
 Version 0.4.2
 =============
 - Fixed:
