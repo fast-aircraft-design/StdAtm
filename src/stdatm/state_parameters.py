@@ -12,7 +12,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 from functools import lru_cache, singledispatch
 from numbers import Real
 from typing import Union
